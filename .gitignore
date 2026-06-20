@@ -39,3 +39,12 @@ yarn-error.log*
 # typescript
 *.tsbuildinfo
 next-env.d.ts
+
+# Custom
+backend/Models/*.gguf
+backend/bin/
+backend/obj/
+frontend/node_modules/
+frontend/.next/
+*.db
+*.sqlite

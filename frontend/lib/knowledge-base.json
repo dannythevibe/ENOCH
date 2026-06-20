@@ -1,0 +1,52 @@
+[
+  {
+    "keywords": ["youth", "centre", "center"],
+    "response": "The Youth Centre is located at coordinates (60, -40). It is currently operational.",
+    "category": "Facilities"
+  },
+  {
+    "keywords": ["medical", "help", "health", "hospital", "doctor"],
+    "response": "The Health Center is located at (-80, -60). For emergencies, please use the SOS module immediately.",
+    "category": "Medical"
+  },
+  {
+    "keywords": ["hall 1", "lodging 1", "sleep 1"],
+    "response": "Hall 1 Lodging is at (150, 20). Check-in closes at 22:00.",
+    "category": "Lodging"
+  },
+  {
+    "keywords": ["hall 2", "lodging 2"],
+    "response": "Hall 2 Lodging is at (150, 60). Quiet hours start at 23:00.",
+    "category": "Lodging"
+  },
+  {
+    "keywords": ["hall 3", "lodging 3"],
+    "response": "Hall 3 Lodging is at (150, 100).",
+    "category": "Lodging"
+  },
+  {
+    "keywords": ["hall 4", "lodging 4"],
+    "response": "Hall 4 Lodging is at (150, 140).",
+    "category": "Lodging"
+  },
+  {
+    "keywords": ["auditorium", "old"],
+    "response": "The Old Auditorium is at (-120, 80). Sessions start at 09:00.",
+    "category": "Facilities"
+  },
+  {
+    "keywords": ["altar", "main", "origin"],
+    "response": "The Main Altar is the central coordinate (0, 0) of the camp.",
+    "category": "Navigation"
+  },
+  {
+    "keywords": ["food", "eat", "dining", "hungry", "cafeteria"],
+    "response": "The central dining tent is located near the Youth Centre at (50, -50). Serving times are 07:00, 13:00, and 19:00.",
+    "category": "Facilities"
+  },
+  {
+    "keywords": ["lost", "child", "kid", "missing"],
+    "response": "If a child is lost, please immediately trigger the 'Lost Child' SOS from the Emergency module. Security at the Main Altar (0,0) handles lost children.",
+    "category": "Emergency"
+  }
+]
