@@ -28,8 +28,10 @@ export default function AIChatModule({ userName = 'Guest', onNavigateToMap }: AI
   const [input, setInput] = useState('');
   const [isTyping, setIsTyping] = useState(false);
   const [isEngineReady, setIsEngineReady] = useState<boolean>(true);
+  const [isListening, setIsListening] = useState(false);
   
   const scrollRef = useRef<HTMLDivElement>(null);
+  const recognitionRef = useRef<any>(null);
 
   useEffect(() => {
     // Load history
@@ -60,6 +62,58 @@ export default function AIChatModule({ userName = 'Guest', onNavigateToMap }: AI
       scrollRef.current.scrollTop = scrollRef.current.scrollHeight;
     }
   }, [messages, isTyping]);
+
+  useEffect(() => {
+    return () => {
+      if (recognitionRef.current) {
+        recognitionRef.current.stop();
+      }
+    };
+  }, []);
+
+  const toggleListening = () => {
+    const SpeechRecognition = (window as any).SpeechRecognition || (window as any).webkitSpeechRecognition;
+    if (!SpeechRecognition) {
+      alert("Speech recognition is not supported in this browser. Please try Chrome, Edge, or Safari.");
+      return;
+    }
+
+    if (isListening) {
+      recognitionRef.current?.stop();
+      setIsListening(false);
+    } else {
+      const recognition = new SpeechRecognition();
+      recognition.continuous = false;
+      recognition.interimResults = false;
+      recognition.lang = 'en-US';
+
+      recognition.onstart = () => {
+        setIsListening(true);
+      };
+
+      recognition.onresult = (event: any) => {
+        const transcript = event.results[0][0].transcript;
+        setInput(prev => prev + (prev ? ' ' : '') + transcript);
+      };
+
+      recognition.onerror = (event: any) => {
+        console.error('Speech recognition error:', event);
+        setIsListening(false);
+      };
+
+      recognition.onend = () => {
+        setIsListening(false);
+      };
+
+      try {
+        recognition.start();
+        recognitionRef.current = recognition;
+      } catch (err) {
+        console.error('Failed to start speech recognition:', err);
+        setIsListening(false);
+      }
+    }
+  };
 
   const handleSend = async (textToSend: string) => {
     if (!textToSend.trim()) return;
@@ -232,9 +286,20 @@ export default function AIChatModule({ userName = 'Guest', onNavigateToMap }: AI
               onChange={(e) => setInput(e.target.value)}
               onKeyDown={(e) => { if (e.key === 'Enter') handleSend(input); }}
               disabled={!isEngineReady}
-              className="w-full bg-[#343536]/90 backdrop-blur-xl border border-white/10 rounded-[20px] py-4 pl-6 pr-16 text-white text-sm placeholder:text-[#c4c9ac]/40 focus:outline-none focus:border-[#c3f400]/50 transition-all disabled:opacity-50"
-              placeholder={isEngineReady ? "Ask ENOCH anything..." : "Loading Engine..."}
+              className="w-full bg-[#343536]/90 backdrop-blur-xl border border-white/10 rounded-[20px] py-4 pl-6 pr-28 text-white text-sm placeholder:text-[#c4c9ac]/40 focus:outline-none focus:border-[#c3f400]/50 transition-all disabled:opacity-50"
+              placeholder={isListening ? "Listening... Speak now..." : isEngineReady ? "Ask ENOCH anything..." : "Loading Engine..."}
             />
+            <button 
+              onClick={toggleListening}
+              className={`absolute right-14 top-1/2 -translate-y-1/2 w-10 h-10 flex items-center justify-center transition-all cursor-pointer rounded-xl ${
+                isListening 
+                  ? 'bg-[#c3f400]/20 text-[#c3f400] border border-[#c3f400]/30 animate-pulse' 
+                  : 'text-[#c4c9ac] hover:text-white'
+              }`}
+              title="Speak to type"
+            >
+              <span className="material-symbols-outlined">{isListening ? 'graphic_eq' : 'mic'}</span>
+            </button>
             <button 
               onClick={() => handleSend(input)}
               disabled={!input.trim() || !isEngineReady}
