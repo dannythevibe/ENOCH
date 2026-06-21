@@ -16,6 +16,11 @@ const nextConfig: NextConfig = {
         child_process: false,
         net: false,
         tls: false,
+        readline: false,
+        path: false,
+        os: false,
+        crypto: false,
+        stream: false,
       };
     }
     return config;

@@ -1,10 +1,13 @@
 // @ts-ignore
-import { NlpManager } from 'node-nlp';
+import { containerBootstrap, Nlp, LangEn } from '@nlpjs/basic';
 import knowledgeBase from './knowledge-base.json';
 
-// We must create the NLP manager. 
-// Since we are running in the browser, we use a basic configuration.
-const manager = new NlpManager({ languages: ['en'], forceNER: true, nlu: { log: false } });
+const container = containerBootstrap();
+container.use(Nlp);
+container.use(LangEn);
+
+// We must create the NLP manager using the basic container for browser compatibility
+const manager = new Nlp({ container, languages: ['en'], forceNER: true, nlu: { log: false } });
 
 let isTrained = false;
 
