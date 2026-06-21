@@ -1,3 +1,4 @@
+// @ts-ignore
 import { NlpManager } from 'node-nlp';
 import knowledgeBase from './knowledge-base.json';
 

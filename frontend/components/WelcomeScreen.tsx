@@ -8,7 +8,7 @@ interface WelcomeScreenProps {
   onGetStarted: () => void;
   onSignIn: () => void;
 }
-
+export default function WelcomeScreen({ onGetStarted, onSignIn }: WelcomeScreenProps) {
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
 
   return (
