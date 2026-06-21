@@ -8,6 +8,7 @@ const withPWA = require("next-pwa")({
 });
 
 const nextConfig: NextConfig = {
+  serverExternalPackages: ['sqlite3'],
   webpack: (config, { isServer }) => {
     if (!isServer) {
       config.resolve.fallback = {

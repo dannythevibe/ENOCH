@@ -65,25 +65,25 @@ To constrain the model strictly to Redemption City logic without fine-tuning, a 
 
 ---
 
-## 5. Backend Architecture (.NET 10)
-**Tech Stack:** C# ASP.NET Core 10 Web API, Entity Framework Core, SQLite
+## 5. Backend Architecture (Serverless Next.js API Routes)
+**Tech Stack:** Next.js Route Handlers (`app/api`), SQLite (`sqlite3`), JSON Web Tokens (JWT)
 
-With AI offloaded to the client, the backend operates as an ultra-lean, high-throughput microservice.
+To vastly simplify the deployment pipeline and completely eliminate Cross-Origin Resource Sharing (CORS) network issues, ENOCH was refactored into a unified "Serverless Monolith." The standalone C# backend was permanently retired.
 
-### 5.1. Database & ORM
-Data is stored using a lightweight SQLite database (`EnochDB.sqlite`), interfaced via EF Core. It manages fundamental user data:
-- `Users` Table (Id, FullName, Email, PasswordHash, IsActive, CreatedAt)
+### 5.1. Database & Persistence
+Data is stored using a local SQLite database (`enoch.db`) accessed directly via Next.js Route Handlers using standard SQL queries. This allows the API routes to be deployed alongside the frontend in Node.js environments (like Render).
+- `Users` Table: Handles authentication and credentials.
+- `Devices` & `Locations` Tables: Manages device mesh tracking and telemetry.
+- `Messages` Table: Logs AI conversational history.
 
-### 5.2. SignalR Mesh Network
-The backend retains SignalR Hubs (`EnochHub.cs`). While the AI is offline, devices with an active connection can still ping this hub to participate in the local "Mesh Network".
-- **Tracking:** Nodes ping their status.
-- **Emergency Broadcasts:** In a crisis, the backend can force-push a signal to all connected clients.
+### 5.2. Unified Deployment Model
+By keeping the API (`/api/auth`, `/api/devices`, `/api/locations`) inside the Next.js `app/api` directory, the frontend and backend share the exact same domain, cookies, and network lifecycle. This results in zero latency routing between the UI and backend logic.
 
 ---
 
 ## 6. Authentication & Security
-- **JWT Bearer Auth:** The frontend authenticates by posting to `/api/auth/login`. The server verifies the `Bcrypt` hashed password and issues a signed JSON Web Token valid for extended offline periods.
-- **Stateless Validation:** The backend API remains stateless. Any protected endpoint merely inspects the Bearer token for claims.
+- **JWT Bearer Auth:** The frontend authenticates by posting to `/api/auth/login`. The server verifies the SHA-256 hashed password and issues a signed JSON Web Token.
+- **Stateless Validation:** The Next.js API remains stateless. Protected endpoints inspect the `Authorization: Bearer <token>` header to extract the user claims securely.
 
 ---
 
