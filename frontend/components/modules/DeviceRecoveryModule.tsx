@@ -20,6 +20,8 @@ export default function DeviceRecoveryModule() {
   const [newDeviceName, setNewDeviceName] = useState('');
   const [addingDevice, setAddingDevice] = useState(false);
 
+  const [currentDeviceSpecs, setCurrentDeviceSpecs] = useState('');
+
   const fetchDevices = async () => {
     try {
       const res = await api.get('/api/devices');
@@ -48,6 +50,25 @@ export default function DeviceRecoveryModule() {
 
   useEffect(() => {
     fetchDevices();
+    
+    // Extract Device Specs
+    if (typeof window !== 'undefined') {
+      const ua = window.navigator.userAgent;
+      const platform = window.navigator.platform;
+      const cores = window.navigator.hardwareConcurrency ? `${window.navigator.hardwareConcurrency} Cores` : '';
+      const memory = (window.navigator as any).deviceMemory ? `${(window.navigator as any).deviceMemory}GB RAM` : '';
+      
+      let os = 'Unknown OS';
+      if (ua.indexOf('Win') !== -1) os = 'Windows';
+      if (ua.indexOf('Mac') !== -1) os = 'MacOS';
+      if (ua.indexOf('Linux') !== -1) os = 'Linux';
+      if (ua.indexOf('Android') !== -1) os = 'Android';
+      if (ua.indexOf('like Mac') !== -1) os = 'iOS';
+
+      const specs = `${os} (${platform}) ${cores ? '• ' + cores : ''} ${memory ? '• ' + memory : ''}`;
+      setCurrentDeviceSpecs(specs);
+      setNewDeviceName(`My ${os} Device`);
+    }
   }, []);
 
   const handlePlaySound = () => {
@@ -245,7 +266,7 @@ export default function DeviceRecoveryModule() {
 
           {/* Register New Device Form */}
           <div className="glass-card p-6 md:p-8 rounded-[24px] mt-auto border-t-2 border-[#CCFF00]/20">
-            <div className="flex items-center gap-4 mb-6">
+            <div className="flex items-center gap-4 mb-4">
               <div className="w-12 h-12 rounded-full bg-[#CCFF00]/10 flex items-center justify-center text-[#CCFF00] border border-[#CCFF00]/20">
                 <span className="material-symbols-outlined text-2xl">add_to_home_screen</span>
               </div>
@@ -254,6 +275,13 @@ export default function DeviceRecoveryModule() {
                 <p className="text-[#c4c9ac] text-sm">Add a tracking node for your device.</p>
               </div>
             </div>
+            
+            {currentDeviceSpecs && (
+              <div className="mb-6 bg-[#1b1c1d] p-3 rounded-xl border border-white/5 flex items-center gap-3">
+                <span className="material-symbols-outlined text-[#CCFF00] text-sm">memory</span>
+                <span className="text-[11px] text-[#c4c9ac] font-bold tracking-wider uppercase">{currentDeviceSpecs}</span>
+              </div>
+            )}
 
             <form onSubmit={handleAddDevice} className="flex flex-col sm:flex-row gap-3">
               <input

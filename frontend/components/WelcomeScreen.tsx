@@ -9,7 +9,8 @@ interface WelcomeScreenProps {
   onSignIn: () => void;
 }
 
-export default function WelcomeScreen({ onGetStarted, onSignIn }: WelcomeScreenProps) {
+  const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
+
   return (
     <div className="flex flex-col min-h-screen text-white font-sans relative overflow-x-hidden bg-black select-none">
       {/* Optimized Background Image */}
@@ -30,15 +31,63 @@ export default function WelcomeScreen({ onGetStarted, onSignIn }: WelcomeScreenP
           <img src="/enoch-logo.png" alt="ENOCH" className="h-10 md:h-14 object-contain select-none" />
         </div>
 
-        <div className="flex items-center">
+        {/* Desktop Navigation */}
+        <div className="hidden md:flex items-center gap-8 bg-[#1f2021]/40 backdrop-blur px-8 py-3 rounded-full border border-white/5 shadow-lg">
+          <button className="text-sm font-bold text-white hover:text-[#c3f400] transition-colors cursor-pointer">Home</button>
+          <button className="text-sm font-bold text-[#c4c9ac] hover:text-[#c3f400] transition-colors cursor-pointer">About</button>
+          <button className="text-sm font-bold text-[#c4c9ac] hover:text-[#c3f400] transition-colors cursor-pointer">Features</button>
+          <button className="text-sm font-bold text-[#c4c9ac] hover:text-[#c3f400] transition-colors cursor-pointer">Contact</button>
+        </div>
+
+        <div className="flex items-center gap-4">
+          {/* Desktop Login Button */}
           <button 
             onClick={onSignIn} 
-            className="px-6 py-2.5 bg-[#1f2021]/60 backdrop-blur border border-white/10 text-white font-bold text-xs uppercase tracking-wider rounded-full hover:bg-white/10 hover:border-white/20 transition-all duration-300 cursor-pointer shadow-[0_0_15px_rgba(0,0,0,0.5)]"
+            className="hidden md:block px-6 py-2.5 bg-[#c3f400] text-black font-black text-xs uppercase tracking-wider rounded-full hover:bg-[#b0db00] active:scale-95 transition-all duration-300 cursor-pointer shadow-[0_0_20px_rgba(195,244,0,0.3)]"
           >
             Login
           </button>
+          
+          {/* Mobile Hamburger Button */}
+          <button 
+            onClick={() => setIsMobileMenuOpen(true)}
+            className="md:hidden w-12 h-12 flex items-center justify-center bg-[#1f2021]/80 backdrop-blur-xl border border-white/10 text-white rounded-full hover:bg-white/10 transition-all duration-300 cursor-pointer shadow-lg"
+          >
+            <span className="material-symbols-outlined">menu</span>
+          </button>
         </div>
       </header>
+
+      {/* Mobile Menu Overlay */}
+      {isMobileMenuOpen && (
+        <div className="fixed inset-0 z-[100] bg-black/95 backdrop-blur-3xl flex flex-col items-center justify-center animate-[slideDown_0.3s_ease-out_forwards]">
+          <button 
+            onClick={() => setIsMobileMenuOpen(false)}
+            className="absolute top-8 right-6 w-12 h-12 flex items-center justify-center bg-white/10 border border-white/20 text-white rounded-full cursor-pointer hover:bg-white/20 transition-all"
+          >
+            <span className="material-symbols-outlined">close</span>
+          </button>
+          
+          <nav className="flex flex-col items-center gap-8 w-full px-8">
+            <button className="text-3xl font-black text-white hover:text-[#c3f400] transition-colors" onClick={() => setIsMobileMenuOpen(false)}>Home</button>
+            <button className="text-3xl font-black text-[#c4c9ac] hover:text-[#c3f400] transition-colors" onClick={() => setIsMobileMenuOpen(false)}>About</button>
+            <button className="text-3xl font-black text-[#c4c9ac] hover:text-[#c3f400] transition-colors" onClick={() => setIsMobileMenuOpen(false)}>Features</button>
+            <button className="text-3xl font-black text-[#c4c9ac] hover:text-[#c3f400] transition-colors" onClick={() => setIsMobileMenuOpen(false)}>Contact</button>
+            
+            <div className="w-full h-px bg-white/10 my-4"></div>
+            
+            <button 
+              onClick={() => {
+                setIsMobileMenuOpen(false);
+                onSignIn();
+              }}
+              className="w-full max-w-sm py-5 bg-[#c3f400] text-black font-black text-lg uppercase tracking-wider rounded-2xl active:scale-95 transition-all shadow-[0_0_30px_rgba(195,244,0,0.3)]"
+            >
+              Login to System
+            </button>
+          </nav>
+        </div>
+      )}
 
       {/* Main Hero Section */}
       <main className="relative z-10 flex-grow flex flex-col items-center justify-center text-center max-w-4xl mx-auto px-6 py-12 md:py-24">
