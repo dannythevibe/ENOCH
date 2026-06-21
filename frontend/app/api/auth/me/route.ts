@@ -19,6 +19,7 @@ export async function GET(request: Request) {
       id: dbUser.Id,
       email: dbUser.Email,
       fullName: dbUser.FullName,
+      profilePictureUrl: dbUser.ProfilePictureUrl || null,
       createdAt: dbUser.CreatedAt
     });
 

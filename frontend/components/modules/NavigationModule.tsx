@@ -33,10 +33,24 @@ function getDistanceFromLatLonInMeters(lat1: number, lon1: number, lat2: number,
   return Math.round(R * c); 
 }
 
-export default function NavigationModule() {
+interface NavigationModuleProps {
+  initialDestinationId?: string;
+}
+
+export default function NavigationModule({ initialDestinationId = '' }: NavigationModuleProps) {
   const [searchQuery, setSearchQuery] = useState('');
-  const [selectedDestinationId, setSelectedDestinationId] = useState<string>('');
+  const [selectedDestinationId, setSelectedDestinationId] = useState<string>(initialDestinationId);
   const [userLoc, setUserLoc] = useState<{lat: number, lng: number}>({ lat: 6.8180, lng: 3.4630 });
+
+  useEffect(() => {
+    if (initialDestinationId) {
+      setSelectedDestinationId(initialDestinationId);
+      const lm = landmarks.find(l => l.id === initialDestinationId);
+      if (lm) {
+        setSearchQuery(lm.name);
+      }
+    }
+  }, [initialDestinationId]);
   const [gpsPrecision, setGpsPrecision] = useState('0.5m');
   const [showSearchResults, setShowSearchResults] = useState(false);
   const [mapTheme, setMapTheme] = useState<'dark' | 'light' | 'satellite'>('dark');

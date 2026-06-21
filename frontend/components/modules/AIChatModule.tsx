@@ -13,9 +13,10 @@ interface Message {
 
 interface AIChatModuleProps {
   userName?: string;
+  onNavigateToMap?: (landmarkId: string) => void;
 }
 
-export default function AIChatModule({ userName = 'Guest' }: AIChatModuleProps) {
+export default function AIChatModule({ userName = 'Guest', onNavigateToMap }: AIChatModuleProps) {
   const [messages, setMessages] = useState<Message[]>([
     { 
       id: '1', 
@@ -85,8 +86,14 @@ export default function AIChatModule({ userName = 'Guest' }: AIChatModuleProps) 
     } catch(e) { console.error(e) }
 
     try {
+      // Map current messages to a simple history format (excluding user's pending/latest message)
+      const chatHistory = messages.map(m => ({
+        role: m.sender,
+        content: m.text
+      }));
+
       // Process using NLP engine
-      const response = await processChatQuery(userMsg, userName);
+      const response = await processChatQuery(userMsg, userName, chatHistory);
 
       const aiMsgId = (Date.now() + 1).toString();
       setIsTyping(false);
@@ -102,6 +109,13 @@ export default function AIChatModule({ userName = 'Guest' }: AIChatModuleProps) 
       if (response.category === 'emergency') {
         alert("EMERGENCY DETECTED! Triggering SOS Module...");
         // In real app, trigger SOS context here.
+      }
+
+      // Automatically navigate to map to display the location after a brief delay
+      if (response.landmarkId && onNavigateToMap) {
+        setTimeout(() => {
+          onNavigateToMap(response.landmarkId!);
+        }, 1800);
       }
 
       // Save AI message to backend
@@ -145,16 +159,11 @@ export default function AIChatModule({ userName = 'Guest' }: AIChatModuleProps) 
             <p className="text-[10px] text-[#c4c9ac] font-bold tracking-wider uppercase">CITY GUIDE</p>
           </div>
         </div>
-        <div className="flex items-center gap-2">
-          <span className="px-3 py-1 rounded-full bg-[#c3f400]/10 border border-[#c3f400]/20 text-[9px] font-bold tracking-widest text-[#c3f400] uppercase">
-            NLP SYSTEM READY
-          </span>
-        </div>
       </header>
 
       <div 
         ref={scrollRef} 
-        className="flex-1 overflow-y-auto px-6 pt-20 pb-44 space-y-6 custom-scrollbar relative z-10"
+        className="flex-1 overflow-y-auto px-6 pt-20 pb-56 space-y-6 custom-scrollbar relative z-10"
       >
         {messages.map((msg) => (
           <div 
@@ -192,7 +201,7 @@ export default function AIChatModule({ userName = 'Guest' }: AIChatModuleProps) 
         )}
       </div>
 
-      <div className="absolute bottom-20 md:bottom-6 left-0 right-0 px-6 pb-2 z-20 max-w-2xl mx-auto pointer-events-none">
+      <div className="absolute bottom-28 md:bottom-6 left-0 right-0 px-6 pb-2 z-20 max-w-2xl mx-auto pointer-events-none">
         <div className="pointer-events-auto flex flex-col gap-3">
           
           <div className="flex gap-2 overflow-x-auto hide-scrollbar pb-1">

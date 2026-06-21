@@ -48,3 +48,4 @@ frontend/node_modules/
 frontend/.next/
 *.db
 *.sqlite
+enoch-db.json

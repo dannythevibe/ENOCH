@@ -21,7 +21,8 @@ const tabs = [
 
 export default function AppShell({ onLogout }: { onLogout?: () => void }) {
   const [activeTab, setActiveTab] = useState('home');
-  const [user, setUser] = useState<{ id: number; email: string; fullName: string } | null>(null);
+  const [selectedLandmarkId, setSelectedLandmarkId] = useState<string>('');
+  const [user, setUser] = useState<{ id: number; email: string; fullName: string; profilePictureUrl?: string } | null>(null);
 
 
   useEffect(() => {
@@ -41,13 +42,28 @@ export default function AppShell({ onLogout }: { onLogout?: () => void }) {
       case 'home':
         return <DashboardModule onNavigate={setActiveTab} user={user} />;
       case 'map':
-        return <NavigationModule />;
+        return <NavigationModule initialDestinationId={selectedLandmarkId} />;
       case 'devices':
         return <DeviceRecoveryModule />;
       case 'chat':
-        return <AIChatModule userName={user?.fullName || 'Guest'} />;
+        return (
+          <AIChatModule 
+            userName={user?.fullName || 'Guest'} 
+            onNavigateToMap={(landmarkId) => {
+              setSelectedLandmarkId(landmarkId);
+              setActiveTab('map');
+            }}
+          />
+        );
       case 'profile':
-        return <ProfileModule onLogout={onLogout} />;
+        return (
+          <ProfileModule 
+            onLogout={onLogout} 
+            onProfileUpdate={(updatedUser) => {
+              setUser(prev => prev ? { ...prev, profilePictureUrl: updatedUser.profilePictureUrl } : null);
+            }}
+          />
+        );
       default:
         return <DashboardModule onNavigate={setActiveTab} user={user} />;
     }
@@ -94,7 +110,7 @@ export default function AppShell({ onLogout }: { onLogout?: () => void }) {
               <img 
                 className="w-full h-full object-cover" 
                 alt="Profile Avatar"
-                src="https://lh3.googleusercontent.com/aida-public/AB6AXuDvWfWWSRhL6CzkOv3V6x_6OqM_oy9zstDuEEXihebiyCWmfxiFijeFwMuBNrz4KWWSeaqAqB0J7mkZa8TTd_L3dQhuC2ezgm6E0rT8VeApcZdZlhXu7Tg2BjrZlWGb6AB6he_8pAIMXZGUQAcaKMubjpPn2xZV0zKf_Di9XS5UU_aNLYjKoeqPsGO_bm7pf4RNLanDMUM7Zo5D93JWt5PDpHglQsnhFzsFjE0n7iJSUHFVpkVmXd48DPxOUsceuzZ9Xh-KgMusGOBz"
+                src={user?.profilePictureUrl || "/default-avatar.svg"}
               />
             </div>
             <div className="text-xs font-bold text-white tracking-wider">{user ? user.fullName : 'Loading...'}</div>

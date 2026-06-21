@@ -12,9 +12,10 @@ interface UserProfile {
 
 interface ProfileModuleProps {
   onLogout?: () => void;
+  onProfileUpdate?: (user: UserProfile) => void;
 }
 
-export default function ProfileModule({ onLogout }: ProfileModuleProps) {
+export default function ProfileModule({ onLogout, onProfileUpdate }: ProfileModuleProps) {
   const [user, setUser] = useState<UserProfile | null>(null);
   const [isUploading, setIsUploading] = useState(false);
   const fileInputRef = useRef<HTMLInputElement>(null);
@@ -50,7 +51,14 @@ export default function ProfileModule({ onLogout }: ProfileModuleProps) {
         },
       });
       if (res.data.profilePictureUrl) {
-        setUser(prev => prev ? { ...prev, profilePictureUrl: res.data.profilePictureUrl } : null);
+        setUser(prev => {
+          if (!prev) return null;
+          const updated = { ...prev, profilePictureUrl: res.data.profilePictureUrl };
+          if (onProfileUpdate) {
+            onProfileUpdate(updated);
+          }
+          return updated;
+        });
       }
     } catch (err) {
       console.error('Failed to upload picture', err);
@@ -90,7 +98,7 @@ export default function ProfileModule({ onLogout }: ProfileModuleProps) {
               <img 
                 className="w-full h-full object-cover" 
                 alt="Profile Avatar"
-                src={user?.profilePictureUrl || "https://lh3.googleusercontent.com/aida-public/AB6AXuDvWfWWSRhL6CzkOv3V6x_6OqM_oy9zstDuEEXihebiyCWmfxiFijeFwMuBNrz4KWWSeaqAqB0J7mkZa8TTd_L3dQhuC2ezgm6E0rT8VeApcZdZlhXu7Tg2BjrZlWGb6AB6he_8pAIMXZGUQAcaKMubjpPn2xZV0zKf_Di9XS5UU_aNLYjKoeqPsGO_bm7pf4RNLanDMUM7Zo5D93JWt5PDpHglQsnhFzsFjE0n7iJSUHFVpkVmXd48DPxOUsceuzZ9Xh-KgMusGOBz"}
+                src={user?.profilePictureUrl || "/default-avatar.svg"}
               />
               <div className="absolute inset-0 rounded-full ring-2 ring-inset ring-[#CCFF00] opacity-50"></div>
             </div>
