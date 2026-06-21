@@ -45,7 +45,7 @@ export default function AppShell({ onLogout }: { onLogout?: () => void }) {
       case 'devices':
         return <DeviceRecoveryModule />;
       case 'chat':
-        return <AIChatModule />;
+        return <AIChatModule userName={user?.fullName || 'Guest'} />;
       case 'profile':
         return <ProfileModule onLogout={onLogout} />;
       default:

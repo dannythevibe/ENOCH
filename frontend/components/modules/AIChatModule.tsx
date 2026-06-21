@@ -1,7 +1,8 @@
 'use client';
 
 import React, { useState, useRef, useEffect } from 'react';
-import { CreateWebWorkerMLCEngine, InitProgressReport, WebWorkerMLCEngine } from '@mlc-ai/web-llm';
+import { processChatQuery } from '@/lib/chat-engine';
+import { api } from '@/lib/api';
 
 interface Message {
   id: string;
@@ -10,83 +11,48 @@ interface Message {
   timestamp: string;
 }
 
-const SYSTEM_PROMPT = `
-You are the ENOCH Autonomous AI Guide running locally offline on the user's device.
-Your task is to answer venue logistics, navigation, and emergency questions for Redemption City.
+interface AIChatModuleProps {
+  userName?: string;
+}
 
-CRITICAL RULES:
-1. You are completely offline. Do not invent or assume live data outside your cache.
-2. Be concise and structured. Use bullet points for directions.
-3. If the user asks about an unknown landmark, state that it is outside the current cached map matrix.
-`;
-
-const campusFaqCache = {
-  emergency_exits: ["Gate 1 (North Main)", "Gate 3 (South Expressway)"],
-  first_aid_hubs: "Located at Sector B behind the main Auditorium.",
-  lost_property: "Report immediately to the Security Hub at Sector A8.",
-  youth_center: "The Youth Center is located right after the main gate.",
-  auditorium: "The Old Auditorium is outlined on the main map. The New Auditorium is further down the central boulevard.",
-  general_info: "Redemption City is a fully integrated smart city with offline capabilities. Visitors can track local nodes, navigate via the map, and get offline assistance."
-};
-
-export default function AIChatModule() {
+export default function AIChatModule({ userName = 'Guest' }: AIChatModuleProps) {
   const [messages, setMessages] = useState<Message[]>([
     { 
       id: '1', 
       sender: 'assistant', 
-      text: "System online. I am ENOCH, your fully offline campus guide. How can I assist you today in Redemption City?",
+      text: "System online. I am ENOCH, your camp guide. How can I assist you today in Redemption City?",
       timestamp: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })
     }
   ]);
   const [input, setInput] = useState('');
   const [isTyping, setIsTyping] = useState(false);
-  
-  // WebLLM State
-  const [engine, setEngine] = useState<WebWorkerMLCEngine | null>(null);
-  const [progressText, setProgressText] = useState<string>('Initializing Offline AI...');
-  const [downloadProgress, setDownloadProgress] = useState<number>(0);
-  const [isEngineReady, setIsEngineReady] = useState<boolean>(false);
-  const [isTestMode, setIsTestMode] = useState<boolean>(false);
+  const [isEngineReady, setIsEngineReady] = useState<boolean>(true);
   
   const scrollRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
-    let isMounted = true;
-
-    const initLocalAI = async () => {
+    // Load history
+    const loadHistory = async () => {
       try {
-        const initProgressCallback = (report: InitProgressReport) => {
-          if (isMounted) {
-            setProgressText(report.text);
-            setDownloadProgress(Math.round(report.progress * 100));
-          }
-        };
+        const token = localStorage.getItem('token');
+        if (!token) return;
 
-        const modelId = "Qwen2-0.5B-Instruct-q4f16_1-MLC";
-        
-        // Use WebWorker to offload AI from the main UI thread
-        const newEngine = await CreateWebWorkerMLCEngine(
-          new Worker(new URL("./worker.ts", import.meta.url), { type: "module" }),
-          modelId,
-          { initProgressCallback }
-        );
-
-        if (isMounted) {
-          setEngine(newEngine);
-          setIsEngineReady(true);
+        const res = await api.get('/api/messages');
+        if (res.data && res.data.length > 0) {
+          const historyMessages = res.data.map((m: any) => ({
+            id: m.id,
+            sender: m.role,
+            text: m.content,
+            timestamp: new Date(m.createdAt).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })
+          }));
+          setMessages(historyMessages);
         }
-      } catch (err: any) {
-        console.error("Failed to load local AI:", err);
-        if (isMounted) setProgressText(`Error loading AI: ${err.message}`);
+      } catch (err) {
+        console.error('Failed to load chat history:', err);
       }
     };
-
-    initLocalAI();
-
-    return () => {
-      isMounted = false;
-    };
-  }, [isTestMode]);
+    loadHistory();
+  }, []);
 
   useEffect(() => {
     if (scrollRef.current) {
@@ -95,7 +61,7 @@ export default function AIChatModule() {
   }, [messages, isTyping]);
 
   const handleSend = async (textToSend: string) => {
-    if (!textToSend.trim() || (!engine && !isTestMode) || !isEngineReady) return;
+    if (!textToSend.trim()) return;
 
     const userMsg = textToSend.trim();
     setInput('');
@@ -111,44 +77,16 @@ export default function AIChatModule() {
       timestamp: timeStr
     }]);
 
+    // Save user message to backend
     try {
-      if (isTestMode) {
-        // Mock response for UI testing
-        setTimeout(() => {
-          setIsTyping(false);
-          setMessages(prev => [...prev, { 
-            id: Date.now().toString(), 
-            sender: 'assistant', 
-            text: "This is a mock AI response for UI testing purposes. The WebGPU Offline Engine download was cancelled.",
-            timestamp: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })
-          }]);
-        }, 1000);
-        return;
+      if (localStorage.getItem('token')) {
+        await api.post('/api/messages', { role: 'user', content: userMsg });
       }
+    } catch(e) { console.error(e) }
 
-      // Build history for the engine with SYSTEM_PROMPT and Local Cache Injection
-      const history: any[] = [
-        { role: 'system', content: SYSTEM_PROMPT },
-        { role: 'system', content: `CURRENT CACHED LOGISTICS MATRIX:\n${JSON.stringify(campusFaqCache)}` }
-      ];
-
-      // Add previous messages as context
-      messages.filter(m => m.id !== '1').forEach(m => {
-        history.push({
-          role: m.sender,
-          content: m.text
-        });
-      });
-      
-      // Add latest user prompt
-      history.push({ role: 'user', content: userMsg });
-
-      // Create streaming response
-      const chunks = await engine!.chat.completions.create({
-        messages: history,
-        temperature: 0.2, // Low temp for factual responses based strictly on cache
-        stream: true,
-      });
+    try {
+      // Process using NLP engine
+      const response = await processChatQuery(userMsg, userName);
 
       const aiMsgId = (Date.now() + 1).toString();
       setIsTyping(false);
@@ -156,21 +94,25 @@ export default function AIChatModule() {
       setMessages(prev => [...prev, { 
         id: aiMsgId, 
         sender: 'assistant', 
-        text: '',
+        text: response.text,
         timestamp: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })
       }]);
 
-      let fullReply = '';
-      for await (const chunk of chunks) {
-        const delta = chunk.choices[0]?.delta?.content || '';
-        fullReply += delta;
-        setMessages(prev => prev.map(m => 
-          m.id === aiMsgId ? { ...m, text: fullReply } : m
-        ));
+      // If emergency, trigger SOS alert automatically
+      if (response.category === 'emergency') {
+        alert("EMERGENCY DETECTED! Triggering SOS Module...");
+        // In real app, trigger SOS context here.
       }
 
+      // Save AI message to backend
+      try {
+        if (localStorage.getItem('token')) {
+          await api.post('/api/messages', { role: 'assistant', content: response.text });
+        }
+      } catch(e) { console.error(e) }
+
     } catch (err) {
-      console.error('AI generation failed:', err);
+      console.error('AI processing failed:', err);
       setIsTyping(false);
       setMessages(prev => [...prev, { 
         id: Date.now().toString(), 
@@ -193,9 +135,9 @@ export default function AIChatModule() {
         <div className="flex items-center gap-3">
           <div className="w-10 h-10 rounded-full bg-[#292a2b] flex items-center justify-center overflow-hidden border border-white/10">
             <img 
-              className="w-full h-full object-cover animate-pulse" 
+              className="w-full h-full object-cover" 
               alt="ENOCH AI Entity"
-              src="https://lh3.googleusercontent.com/aida-public/AB6AXuAI43CZY2V3Xz9KhkL93UgfU-5OFjrBnibeOKNN3myGgficEJSLkdBeHf2mQ5Qe9KVp8yNxa0ynBGLz6Js4H2aATwsKv2-02um0c_VVU9G0VmWV_I9D4d77oaIkWxYQi1CUglcEzGDLvwW58kWJ9PH5ZuAUFeZuZVbHW7yzs3VNlQOsUh2n5AWkfgKUZWIab-18jSjClMjQlDFv8n5_0ot9g8gMEVqe2X2I2OJZk-liUykx70TTaD-bVQUMz1jruzE8KjM-PfIArgvC"
+              src="/enoch-logo.png"
             />
           </div>
           <div>
@@ -204,8 +146,8 @@ export default function AIChatModule() {
           </div>
         </div>
         <div className="flex items-center gap-2">
-          <span className="px-3 py-1 rounded-full bg-[#c3f400]/10 border border-[#c3f400]/20 text-[9px] font-bold tracking-widest text-[#c3f400] uppercase animate-pulse select-none">
-            {isEngineReady ? (isTestMode ? 'TEST MODE' : 'WEB-GPU AI READY') : 'DOWNLOADING AI...'}
+          <span className="px-3 py-1 rounded-full bg-[#c3f400]/10 border border-[#c3f400]/20 text-[9px] font-bold tracking-widest text-[#c3f400] uppercase">
+            NLP SYSTEM READY
           </span>
         </div>
       </header>
@@ -214,35 +156,6 @@ export default function AIChatModule() {
         ref={scrollRef} 
         className="flex-1 overflow-y-auto px-6 pt-20 pb-44 space-y-6 custom-scrollbar relative z-10"
       >
-        {!isEngineReady && (
-          <div className="bg-[#1b1c1d] border border-white/10 rounded-2xl p-6 shadow-xl mb-6">
-             <div className="flex items-center gap-3 mb-2 justify-between">
-               <div className="flex items-center gap-3">
-                  <span className="material-symbols-outlined text-[#c3f400] animate-spin">download</span>
-                  <h3 className="text-sm font-bold text-white">First Time Setup: Background Sync</h3>
-               </div>
-               <span className="text-[#c3f400] font-black">{downloadProgress}%</span>
-             </div>
-             <p className="text-xs text-[#c4c9ac] mb-4">Silently downloading the offline neural network to your browser cache. This only happens once.</p>
-             <div className="w-full bg-black/40 rounded-full h-2 mb-2 overflow-hidden">
-                <div 
-                  className="bg-[#c3f400] h-full rounded-full transition-all duration-300"
-                  style={{ width: `${downloadProgress}%` }}
-                ></div>
-             </div>
-             <p className="text-[10px] text-white/50 font-mono mb-4">{progressText}</p>
-             <button 
-               onClick={() => {
-                 setIsTestMode(true);
-                 setIsEngineReady(true);
-               }}
-               className="w-full py-2 bg-red-500/10 text-red-400 border border-red-500/20 rounded-xl text-xs font-bold hover:bg-red-500/20 transition-all cursor-pointer"
-             >
-               Cancel
-             </button>
-          </div>
-        )}
-
         {messages.map((msg) => (
           <div 
             key={msg.id} 
@@ -273,7 +186,7 @@ export default function AIChatModule() {
               </div>
             </div>
             <span className="text-[10px] font-bold text-[#c4c9ac]/50 px-1 uppercase tracking-wider">
-              ENOCH is consulting local cache...
+              ENOCH is processing...
             </span>
           </div>
         )}
@@ -284,23 +197,20 @@ export default function AIChatModule() {
           
           <div className="flex gap-2 overflow-x-auto hide-scrollbar pb-1">
             <button 
-              onClick={() => handleChipClick('Find nearest exit')}
-              disabled={!isEngineReady}
-              className="whitespace-nowrap px-4 py-2 bg-[#343536]/80 backdrop-blur border border-white/10 rounded-full text-xs font-bold text-white hover:bg-[#c3f400] hover:text-black transition-all duration-300 cursor-pointer disabled:opacity-50"
+              onClick={() => handleChipClick('Where is the main altar?')}
+              className="whitespace-nowrap px-4 py-2 bg-[#343536]/80 backdrop-blur border border-white/10 rounded-full text-xs font-bold text-white hover:bg-[#c3f400] hover:text-black transition-all duration-300 cursor-pointer"
             >
-              Find nearest exit
+              Where is the main altar?
             </button>
             <button 
-              onClick={() => handleChipClick('Lost property protocol')}
-              disabled={!isEngineReady}
-              className="whitespace-nowrap px-4 py-2 bg-[#343536]/80 backdrop-blur border border-white/10 rounded-full text-xs font-bold text-white hover:bg-[#c3f400] hover:text-black transition-all duration-300 cursor-pointer disabled:opacity-50"
+              onClick={() => handleChipClick('I need medical help')}
+              className="whitespace-nowrap px-4 py-2 bg-[#343536]/80 backdrop-blur border border-white/10 rounded-full text-xs font-bold text-white hover:bg-[#c3f400] hover:text-black transition-all duration-300 cursor-pointer text-red-300 hover:text-red-900"
             >
-              Lost property
+              I need medical help
             </button>
             <button 
               onClick={() => handleChipClick('Where is the Youth Center?')}
-              disabled={!isEngineReady}
-              className="whitespace-nowrap px-4 py-2 bg-[#343536]/80 backdrop-blur border border-white/10 rounded-full text-xs font-bold text-white hover:bg-[#c3f400] hover:text-black transition-all duration-300 cursor-pointer disabled:opacity-50"
+              className="whitespace-nowrap px-4 py-2 bg-[#343536]/80 backdrop-blur border border-white/10 rounded-full text-xs font-bold text-white hover:bg-[#c3f400] hover:text-black transition-all duration-300 cursor-pointer"
             >
               Where is the Youth Center?
             </button>
@@ -314,7 +224,7 @@ export default function AIChatModule() {
               onKeyDown={(e) => { if (e.key === 'Enter') handleSend(input); }}
               disabled={!isEngineReady}
               className="w-full bg-[#343536]/90 backdrop-blur-xl border border-white/10 rounded-[20px] py-4 pl-6 pr-16 text-white text-sm placeholder:text-[#c4c9ac]/40 focus:outline-none focus:border-[#c3f400]/50 transition-all disabled:opacity-50"
-              placeholder={isEngineReady ? "Ask ENOCH anything..." : "Downloading AI..."}
+              placeholder={isEngineReady ? "Ask ENOCH anything..." : "Loading Engine..."}
             />
             <button 
               onClick={() => handleSend(input)}

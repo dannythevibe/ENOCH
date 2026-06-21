@@ -11,6 +11,8 @@
   "dependencies": {
     "@microsoft/signalr": "^10.0.0",
     "@mlc-ai/web-llm": "^0.2.84",
+    "@nlpjs/basic": "^5.0.0-alpha.5",
+    "@nlpjs/nlp": "^5.0.0-alpha.5",
     "axios": "^1.18.0",
     "lucide-react": "^1.18.0",
     "maplibre-gl": "^5.24.0",

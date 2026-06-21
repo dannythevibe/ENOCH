@@ -13,8 +13,10 @@ export default function InstallPrompt() {
       e.preventDefault();
       // Stash the event so it can be triggered later.
       setDeferredPrompt(e);
-      // Update UI to show the install promotion
-      setShowPrompt(true);
+      // Update UI to show the install promotion after a delay
+      setTimeout(() => {
+        setShowPrompt(true);
+      }, 5000);
     };
 
     window.addEventListener('beforeinstallprompt', handleBeforeInstallPrompt);

@@ -82,7 +82,43 @@ public class AuthController : ControllerBase
         if (user == null)
             return NotFound("User not found.");
 
-        return Ok(new { Id = user.Id, Email = user.Email, FullName = user.FullName });
+        return Ok(new { Id = user.Id, Email = user.Email, FullName = user.FullName, ProfilePictureUrl = user.ProfilePictureUrl });
+    }
+
+    [HttpPost("profile-picture")]
+    [Microsoft.AspNetCore.Authorization.Authorize]
+    public async Task<IActionResult> UploadProfilePicture(IFormFile file)
+    {
+        var userIdClaim = User.FindFirst(ClaimTypes.NameIdentifier);
+        if (userIdClaim == null || !Guid.TryParse(userIdClaim.Value, out var userId))
+            return Unauthorized("User claim not found or invalid.");
+
+        if (file == null || file.Length == 0)
+            return BadRequest("No file uploaded.");
+
+        var user = await _context.Users.FindAsync(userId);
+        if (user == null)
+            return NotFound("User not found.");
+
+        var uploadsFolder = Path.Combine(Directory.GetCurrentDirectory(), "wwwroot", "uploads");
+        if (!Directory.Exists(uploadsFolder))
+            Directory.CreateDirectory(uploadsFolder);
+
+        var uniqueFileName = Guid.NewGuid().ToString() + "_" + file.FileName;
+        var filePath = Path.Combine(uploadsFolder, uniqueFileName);
+
+        using (var stream = new FileStream(filePath, FileMode.Create))
+        {
+            await file.CopyToAsync(stream);
+        }
+
+        var requestUrl = $"{Request.Scheme}://{Request.Host.Value}";
+        var fileUrl = $"{requestUrl}/uploads/{uniqueFileName}";
+
+        user.ProfilePictureUrl = fileUrl;
+        await _context.SaveChangesAsync();
+
+        return Ok(new { ProfilePictureUrl = fileUrl });
     }
 }
 

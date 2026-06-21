@@ -1,52 +1,227 @@
 [
   {
-    "keywords": ["youth", "centre", "center"],
-    "response": "The Youth Centre is located at coordinates (60, -40). It is currently operational.",
-    "category": "Facilities"
-  },
-  {
-    "keywords": ["medical", "help", "health", "hospital", "doctor"],
-    "response": "The Health Center is located at (-80, -60). For emergencies, please use the SOS module immediately.",
-    "category": "Medical"
-  },
-  {
-    "keywords": ["hall 1", "lodging 1", "sleep 1"],
-    "response": "Hall 1 Lodging is at (150, 20). Check-in closes at 22:00.",
-    "category": "Lodging"
-  },
-  {
-    "keywords": ["hall 2", "lodging 2"],
-    "response": "Hall 2 Lodging is at (150, 60). Quiet hours start at 23:00.",
-    "category": "Lodging"
-  },
-  {
-    "keywords": ["hall 3", "lodging 3"],
-    "response": "Hall 3 Lodging is at (150, 100).",
-    "category": "Lodging"
-  },
-  {
-    "keywords": ["hall 4", "lodging 4"],
-    "response": "Hall 4 Lodging is at (150, 140).",
-    "category": "Lodging"
-  },
-  {
-    "keywords": ["auditorium", "old"],
-    "response": "The Old Auditorium is at (-120, 80). Sessions start at 09:00.",
-    "category": "Facilities"
-  },
-  {
-    "keywords": ["altar", "main", "origin"],
-    "response": "The Main Altar is the central coordinate (0, 0) of the camp.",
+    "keywords": ["car park", "parking", "park a", "park b", "park c", "park d", "park e", "park f", "peaceville", "school"],
+    "response": "Redemption City has multiple designated Car Parks: A, B, C, D, and E are available. Shuttle buses operate from active car parks to main auditoriums. Car Park F was historically a car park but was scrapped to build Peaceville School.",
     "category": "Navigation"
   },
   {
-    "keywords": ["food", "eat", "dining", "hungry", "cafeteria"],
-    "response": "The central dining tent is located near the Youth Centre at (50, -50). Serving times are 07:00, 13:00, and 19:00.",
+    "keywords": ["rectem", "redeemer's college of technology and management", "polytechnic", "engineering"],
+    "response": "RECTEM (Redeemer's College of Technology and Management) is centered at KM 46, Lagos-Ibadan Expressway. It houses the Admin Building, lecture halls, engineering/science labs, libraries, and student hostels. Website: rectem.edu.ng",
+    "category": "Academic"
+  },
+  {
+    "keywords": ["run", "redeemer's university"],
+    "response": "Redeemer's University (RUN) temporary camp structures are decommissioned. All primary academic and administrative data strings route directly to the permanent campus in Ede, Osun State. Website: run.edu.ng",
+    "category": "Academic"
+  },
+  {
+    "keywords": ["rcbc", "redeemed christian bible college", "theology", "bible college"],
+    "response": "Redeemed Christian Bible College (RCBC) is a sprawling campus handling internal theology, ministerial certifications, and residential student housing.",
+    "category": "Academic"
+  },
+  {
+    "keywords": ["yellow bus", "fast food", "street food", "jollof", "suya", "small chops", "zobo"],
+    "response": "Yellow Bus is a highly popular fast-food and local street-food culinary hub fused with Lagos street food culture (smoky jollof, suya, small chops, zobo). It is a dining POI near the RECTEM/student districts.",
+    "category": "Food"
+  },
+  {
+    "keywords": ["mimi", "mimi's restaurant", "mimis"],
+    "response": "Mimi's Restaurant operates natively within the Redeem Health Village (RHV) complex. Contact: +2348077281776.",
+    "category": "Food"
+  },
+  {
+    "keywords": ["shalom restaurant", "shalom", "event catering"],
+    "response": "Shalom Restaurant is a major event-catering and local dining hub handling heavy daily administrative footprints.",
+    "category": "Food"
+  },
+  {
+    "keywords": ["cherith", "cherith restaurant", "meekness road"],
+    "response": "Cherith Restaurant is positioned along Meekness Road, tightly bridging the main entrance gate traffic.",
+    "category": "Food"
+  },
+  {
+    "keywords": ["king's restaurant", "tantalizers", "fast food", "kings"],
+    "response": "King's Restaurant & Tantalizers are commercial high-volume fast-food nodes positioned directly opposite the RECTEM student residential quadrants.",
+    "category": "Food"
+  },
+  {
+    "keywords": ["delta kitchen", "jubilee bank", "delta"],
+    "response": "Delta Kitchen is a major commercial local restaurant located immediately adjacent to Jubilee Bank.",
+    "category": "Food"
+  },
+  {
+    "keywords": ["bethel place dining", "bethel kitchen"],
+    "response": "Bethel Place Dining is a native catering and hospitality kitchen tied directly to the Bethel complex operations. Contact: +2348111817522.",
+    "category": "Food"
+  },
+  {
+    "keywords": ["joy to the wise", "short stay"],
+    "response": "Joy to the Wise is a dual-purpose retail kitchen and short-stay provisioning node. Contact Mr. Jiromade Ola: +2348033961570.",
+    "category": "Food"
+  },
+  {
+    "keywords": ["truly hospitable", "restaurant"],
+    "response": "Truly Hospitable is a local dining option. Contact: +2347058898352.",
+    "category": "Food"
+  },
+  {
+    "keywords": ["bank", "gtbank", "zenith", "premium trust", "unity", "haggai", "mortgage", "jubilee", "atm", "cash"],
+    "response": "The commercial banking district hosts dense financial sectors including GTBank, Zenith Bank, Premium Trust Bank, Unity Bank, Haggai Mortgage Bank (premier real estate facility), and Jubilee Bank (localized hub flanking Delta Kitchen).",
+    "category": "Banking"
+  },
+  {
+    "keywords": ["emmanuel park", "amusement", "sport", "basketball", "volleyball", "tennis", "ayo olopon", "ferris wheel", "roller coaster"],
+    "response": "RCCG Emmanuel Park is a sprawling family amusement and sport-complex hub. It houses multi-sport courts alongside roller coasters, a Ferris wheel, bumper cars, and family boat slides.",
+    "category": "Recreation"
+  },
+  {
+    "keywords": ["canaanland market", "redemption camp market", "market", "buy", "food supply"],
+    "response": "Canaanland Market / Redemption Camp Market is a massive municipal trade zone acting as the central logistics node for food supply, electronics, apparel, and commodities.",
     "category": "Facilities"
   },
   {
-    "keywords": ["lost", "child", "kid", "missing"],
-    "response": "If a child is lost, please immediately trigger the 'Lost Child' SOS from the Emergency module. Security at the Main Altar (0,0) handles lost children.",
+    "keywords": ["white house suites", "executive", "chalet", "premium hospitality"],
+    "response": "White House Suites is a premium hospitality sector situated directly behind the Old Auditorium managing Executive Chalets. Contact Aiyenuro Bukola: +2348038473897.",
+    "category": "Lodging"
+  },
+  {
+    "keywords": ["dove guest house", "dove"],
+    "response": "RCCG Dove Guest House is a mainline hospitality standalone chalet unit flanking Moses Apartment near the old arena perimeter.",
+    "category": "Lodging"
+  },
+  {
+    "keywords": ["moses apartment", "moses hall", "chalet"],
+    "response": "Moses Apartment / Moses Hall offers high-occupancy operational chalets. Contact Sijuade Adebayo: +2348038510973.",
+    "category": "Lodging"
+  },
+  {
+    "keywords": ["shiloh apartments", "gethsemane lodges", "pillar 29", "shiloh"],
+    "response": "Shiloh Apartments & Gethsemane Lodges are positioned next to the original engineering pillars (e.g., Pillar 29) of the old auditorium grounds. Contact Mr. Idowu: +2348037152898.",
+    "category": "Lodging"
+  },
+  {
+    "keywords": ["overflow chalets", "grace court"],
+    "response": "Overflow Chalets & Grace Court are standalone luxury spaces for visiting church executives and families. Contact Mrs. Bukola Aiyenuro: +2348038473897.",
+    "category": "Lodging"
+  },
+  {
+    "keywords": ["shepherd place", "comfort palace"],
+    "response": "Shepherd Place & Comfort Palace are mid-tier operational guest suites. Comfort Palace Contact David Mary Adetola: +2348038057649.",
+    "category": "Lodging"
+  },
+  {
+    "keywords": ["bethel guest house", "bethel place", "bethel suites"],
+    "response": "Bethel Place & Bethel Suites are located near the main entrance gates on Love Road, behind Pastor's Lodge. Contact: +2348060001143 / +2348111817522. Website: bethelng.com",
+    "category": "Lodging"
+  },
+  {
+    "keywords": ["crm retreat centre", "hospitality suites", "retreat", "rhv"],
+    "response": "CRM Retreat Centre & Hospitality Suites are set in a quiet zone inside the Redeem Health Village (RHV) near Mimi's Restaurant, optimized for personal spiritual retreats.",
+    "category": "Lodging"
+  },
+  {
+    "keywords": ["international guest house", "africa missions guest house", "foreign"],
+    "response": "International Guest House & Africa Missions Guest House are dedicated centers for global delegates. Contact Ajibade Jerry: +2348032511111.",
+    "category": "Lodging"
+  },
+  {
+    "keywords": ["peace de luxe", "deluxe hotel", "hotel"],
+    "response": "Peace De Luxe Limited Hotel is a highly integrated deep-camp commercial hospitality alternative. Contact Mr. Ajibade Jerry: +2348032511111.",
+    "category": "Lodging"
+  },
+  {
+    "keywords": ["security command", "police station", "holy police", "patrol", "security"],
+    "response": "Security Command (Holy Police / Police Station) is the main security hub handling internal community safety, entry point verification, and event patrols.",
     "category": "Emergency"
+  },
+  {
+    "keywords": ["fire service", "fire department", "fire", "burn"],
+    "response": "Fire Service Department is the dedicated internal emergency engine. Hotline: +2347098213112.",
+    "category": "Emergency"
+  },
+  {
+    "keywords": ["rccg medical centre", "health village", "hospital", "clinic", "health", "public health"],
+    "response": "RCCG Medical Centre / Health Village handles core healthcare infrastructure. Medical Hotline: +23418447340. Public Health Hotline: +2348058020771 (Holiness Road, Opp CRM Pharmacy).",
+    "category": "Medical"
+  },
+  {
+    "keywords": ["water supply", "water department"],
+    "response": "Water Supply Department manages internal water distribution grids. Hotline: +2348034059309.",
+    "category": "Hotlines"
+  },
+  {
+    "keywords": ["electrical department", "electricity", "power", "meter", "prepaid"],
+    "response": "Electrical Department manages the independent power generation plant and utility grids. General Issues: +2348022592463. Prepaid/Meter Issues: +2348066319471.",
+    "category": "Hotlines"
+  },
+  {
+    "keywords": ["sanitation", "dry cleaning", "waste management", "laundry"],
+    "response": "Sanitation & Dry Cleaning Department handles waste management and commercial laundry infrastructure. Hotline: +2348030760183.",
+    "category": "Hotlines"
+  },
+  {
+    "keywords": ["internet", "wifi", "tech desk", "information gateway"],
+    "response": "Internet & Information Gateway Tech Desk manages the digital network. Hotline: +23480668680227.",
+    "category": "Hotlines"
+  },
+  {
+    "keywords": ["rccg main portal", "portal", "check in", "sync"],
+    "response": "The RCCG Main Portal is for institutional check-ins and administrative database syncing. Website Gateway: portal.rccg.org",
+    "category": "Facilities"
+  },
+  {
+    "keywords": ["new auditorium", "3km", "arena"],
+    "response": "The New Auditorium (The Arena) is the massive 3km by 3km pavilion located further into the city along the main expressway.",
+    "category": "Facilities"
+  },
+  {
+    "keywords": ["old auditorium"],
+    "response": "The Old Auditorium is located near the main entrance of Redemption City, used for smaller gatherings and special sessions.",
+    "category": "Facilities"
+  },
+  {
+    "keywords": ["children", "childrens auditorium", "kids"],
+    "response": "The Children's Auditorium is located near the Old Auditorium. It is a secure zone dedicated to children's ministry.",
+    "category": "Facilities"
+  },
+  {
+    "keywords": ["bookshop", "crm", "books", "open heavens"],
+    "response": "The CRM Bookshop and Open Heavens International Centre are located near the Old Auditorium, offering Bibles, books, and souvenirs.",
+    "category": "Facilities"
+  },
+  {
+    "keywords": ["post office", "mail", "send"],
+    "response": "The RCCG Camp Post Office is located in the administrative block for your mailing needs.",
+    "category": "Facilities"
+  },
+  {
+    "keywords": ["secretariat", "admin", "office"],
+    "response": "The Camp Secretariat houses the administrative offices for Redemption City operations.",
+    "category": "Facilities"
+  },
+  {
+    "keywords": ["altar", "main altar"],
+    "response": "The Main Altar is the focal point of the auditoriums. Only authorized personnel are allowed on the altar.",
+    "category": "Navigation"
+  },
+  {
+    "keywords": ["history", "rccg history", "how did rccg start", "founded", "foundation"],
+    "response": "The story of RCCG is an incredible transformation from a small 9-person fellowship in 1947 to a global network across nearly 200 nations. Would you like me to tell you about how it started with the Founder (Pa Josiah Akindayomi)? Just say 'Tell me about the founder'.",
+    "category": "History"
+  },
+  {
+    "keywords": ["founder", "josiah akindayomi", "who founded rccg", "pa josiah", "akindayomi", "tell me about the founder"],
+    "response": "Pa Josiah Olufemi Akindayomi (1909-1980) was the founder. Originally an illiterate blacksmith, he received a divine call. In a vision, he saw the words 'The Redeemed Christian Church of God' on a blackboard and supernaturally wrote down the English letters. Would you like to hear about his successor, Pastor Adeboye? If so, say 'Tell me about the successor'.",
+    "category": "History"
+  },
+  {
+    "keywords": ["successor", "enoch adeboye", "adeboye", "general overseer", "who is adeboye", "daddy go", "tell me about the successor"],
+    "response": "Pastor Enoch Adejare Adeboye (born 1942) is the current General Overseer. A former University Mathematics Professor, he joined RCCG in 1973, served as Pa Akindayomi's interpreter, and became the General Overseer in 1981. Should I continue with how he expanded the church globally? Just say 'Tell me about the expansion'.",
+    "category": "History"
+  },
+  {
+    "keywords": ["expansion", "tell me about the expansion", "model parish", "model parishes", "holy ghost service", "five minute rule", "growth"],
+    "response": "Pastor Adeboye revolutionized RCCG by introducing 'Model Parishes' to attract urban professionals, launching the massive Holy Ghost Services, and establishing the 'Five-Minute Rule' (planting a parish within 5 minutes of every home). This architectural vision transformed Redemption City and RCCG globally!",
+    "category": "History"
   }
 ]

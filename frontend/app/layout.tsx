@@ -17,6 +17,10 @@ export const metadata: Metadata = {
   title: "ENOCH Guide",
   description: "Offline Campus Navigation & Guide for Redemption City",
   manifest: "/manifest.json",
+  icons: {
+    icon: "/enoch-logo.png",
+    apple: "/enoch-logo.png",
+  },
   appleWebApp: {
     capable: true,
     statusBarStyle: "black-translucent",
