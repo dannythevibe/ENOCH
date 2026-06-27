@@ -25,20 +25,72 @@ export default function AuthForm({
     setError('');
     setLoading(true);
 
+    const isOffline = typeof window !== 'undefined' && !navigator.onLine;
+
     try {
-      if (isLogin) {
-        const res = await api.post('/api/auth/login', { email, password });
-        localStorage.setItem('token', res.data.token);
-        onLogin();
+      if (isOffline) {
+        const localUsers = JSON.parse(localStorage.getItem('enoch_local_users') || '[]');
+        
+        if (isLogin) {
+          const match = localUsers.find((u: any) => u.email.toLowerCase() === email.toLowerCase() && u.password === password);
+          if (!match) {
+            throw new Error('Invalid credentials or no offline profile found. Check your details or connect to the internet.');
+          }
+          const payload = { id: match.id, email: match.email, fullName: match.fullName, offline: true };
+          const mockToken = "offline." + btoa(JSON.stringify(payload));
+          localStorage.setItem('token', mockToken);
+          onLogin();
+        } else {
+          const exists = localUsers.some((u: any) => u.email.toLowerCase() === email.toLowerCase());
+          if (exists) {
+            throw new Error('This email is already registered locally.');
+          }
+          const newUser = { id: Date.now(), email, password, fullName };
+          localUsers.push(newUser);
+          localStorage.setItem('enoch_local_users', JSON.stringify(localUsers));
+
+          const payload = { id: newUser.id, email: newUser.email, fullName: newUser.fullName, offline: true };
+          const mockToken = "offline." + btoa(JSON.stringify(payload));
+          localStorage.setItem('token', mockToken);
+          onLogin();
+        }
       } else {
-        await api.post('/api/auth/register', { email, password, fullName });
-        // Auto login after registration
-        const res = await api.post('/api/auth/login', { email, password });
-        localStorage.setItem('token', res.data.token);
-        onLogin();
+        if (isLogin) {
+          const res = await api.post('/api/auth/login', { email, password });
+          localStorage.setItem('token', res.data.token);
+          
+          try {
+            const localUsers = JSON.parse(localStorage.getItem('enoch_local_users') || '[]');
+            const userProfile = JSON.parse(atob(res.data.token.split('.')[1]));
+            if (userProfile && userProfile.fullName) {
+              const otherUsers = localUsers.filter((u: any) => u.email.toLowerCase() !== email.toLowerCase());
+              otherUsers.push({ id: userProfile.id, email, password, fullName: userProfile.fullName });
+              localStorage.setItem('enoch_local_users', JSON.stringify(otherUsers));
+            }
+          } catch(e) { console.error('Failed to cache credentials:', e); }
+
+          onLogin();
+        } else {
+          await api.post('/api/auth/register', { email, password, fullName });
+          const res = await api.post('/api/auth/login', { email, password });
+          localStorage.setItem('token', res.data.token);
+
+          try {
+            const localUsers = JSON.parse(localStorage.getItem('enoch_local_users') || '[]');
+            const userProfile = JSON.parse(atob(res.data.token.split('.')[1]));
+            if (userProfile && userProfile.fullName) {
+              const otherUsers = localUsers.filter((u: any) => u.email.toLowerCase() !== email.toLowerCase());
+              otherUsers.push({ id: userProfile.id, email, password, fullName: userProfile.fullName });
+              localStorage.setItem('enoch_local_users', JSON.stringify(otherUsers));
+            }
+          } catch(e) { console.error('Failed to cache credentials:', e); }
+
+          onLogin();
+        }
       }
     } catch (err: any) {
-      setError(err.response?.data || 'An error occurred. Check your network or credentials.');
+      console.error(err);
+      setError(err.response?.data || err.message || 'An error occurred. Check your network or credentials.');
     } finally {
       setLoading(false);
     }

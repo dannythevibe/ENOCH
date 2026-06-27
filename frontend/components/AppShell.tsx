@@ -33,6 +33,24 @@ export default function AppShell({ onLogout }: { onLogout?: () => void }) {
         setUser(res.data);
       } catch (err) {
         console.error('Failed to fetch user:', err);
+        const token = localStorage.getItem('token');
+        if (token) {
+          try {
+            const parts = token.split('.');
+            const payloadIndex = parts.length > 1 ? 1 : 0;
+            const decoded = JSON.parse(atob(parts[payloadIndex]));
+            if (decoded && decoded.fullName) {
+              setUser({
+                id: decoded.id || 1,
+                email: decoded.email || '',
+                fullName: decoded.fullName,
+                profilePictureUrl: decoded.profilePictureUrl
+              });
+            }
+          } catch (e) {
+            console.error('Failed to decode local token:', e);
+          }
+        }
       }
     };
     fetchUser();
