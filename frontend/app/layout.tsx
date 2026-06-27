@@ -1,6 +1,5 @@
 import type { Metadata, Viewport } from "next";
 import { Geist, JetBrains_Mono } from "next/font/google";
-import "material-symbols/outlined.css";
 import "./globals.css";
 
 const geistSans = Geist({

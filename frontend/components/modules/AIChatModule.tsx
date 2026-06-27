@@ -61,6 +61,7 @@ export default function AIChatModule({ userName = 'Guest', onNavigateToMap }: AI
   const recognitionRef = useRef<any>(null);
   const accumulatedTranscriptRef = useRef('');
   const latestTranscriptRef = useRef('');
+  const isSubmittingRef = useRef(false);
   const silenceTimeoutRef = useRef<any>(null);
 
   useEffect(() => {
@@ -301,6 +302,10 @@ export default function AIChatModule({ userName = 'Guest', onNavigateToMap }: AI
     };
 
     recognition.onresult = (event: any) => {
+      if (isSubmittingRef.current) {
+        return;
+      }
+
       let finalTranscript = "";
       let interimTranscript = "";
 
@@ -323,7 +328,7 @@ export default function AIChatModule({ userName = 'Guest', onNavigateToMap }: AI
       // 1.5 seconds of silence means user is done speaking
       silenceTimeoutRef.current = setTimeout(() => {
         const textToSubmit = latestTranscriptRef.current.trim();
-        if (textToSubmit) {
+        if (textToSubmit && !isSubmittingRef.current) {
           console.log("Silence detected. Submitting voice query:", textToSubmit);
           
           if (recognitionRef.current) {
@@ -414,7 +419,9 @@ export default function AIChatModule({ userName = 'Guest', onNavigateToMap }: AI
   };
 
   const handleSend = async (textToSend: string, isVoiceMode: boolean = voiceModeRef.current) => {
-    if (!textToSend.trim()) return;
+    if (!textToSend.trim() || isSubmittingRef.current) return;
+
+    isSubmittingRef.current = true;
 
     if (silenceTimeoutRef.current) {
       clearTimeout(silenceTimeoutRef.current);
@@ -527,10 +534,13 @@ export default function AIChatModule({ userName = 'Guest', onNavigateToMap }: AI
         }
       } catch(e) { console.error(e) }
 
+      isSubmittingRef.current = false;
+
     } catch (err) {
       console.error('AI processing failed:', err);
       setIsTyping(false);
       isTypingRef.current = false;
+      isSubmittingRef.current = false;
       setMessages(prev => [...prev, { 
         id: Date.now().toString(), 
         sender: 'assistant', 

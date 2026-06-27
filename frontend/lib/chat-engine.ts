@@ -347,8 +347,50 @@ const _processChatQuery = async (
       };
     }
   }
+
+  // B. Specific POI Entry Search (High confidence POI mappings prioritized above casual chat)
+  let bestMatch = null;
+  let highestScore = 0;
+
+  for (const entry of knowledgeBase) {
+    let score = getSpecificMatchScore(query, entry.keywords);
+    
+    // Direct name match boost
+    const name = getEntryName(entry.response, entry.keywords);
+    const cleanedName = cleanText(name);
+    if (cleanedQuery === cleanedName) {
+      score += 15;
+    } else if (cleanedQuery.includes(cleanedName) || cleanedName.includes(cleanedQuery)) {
+      const wordRegex = new RegExp(`\\b${cleanedName.replace(/[-\/\\^$*+?.()|[\]{}]/g, '\\$&')}\\b`, 'i');
+      if (wordRegex.test(cleanedQuery)) {
+        score += 8;
+      }
+    }
+
+    if (score > highestScore) {
+      highestScore = score;
+      bestMatch = entry;
+    }
+  }
+
+  // Resolve landmarkId if possible
+  let landmarkId: string | undefined = undefined;
+  for (const [key, id] of Object.entries(LANDMARK_MAPPINGS)) {
+    if (cleanedQuery.includes(key) || (bestMatch && highestScore >= 4 && bestMatch.keywords.some((kw: string) => cleanText(kw).includes(key)))) {
+      landmarkId = id;
+      break;
+    }
+  }
+
+  if (bestMatch && highestScore >= 4) {
+    return {
+      text: bestMatch.response.replace(/%name%/g, userFirstName),
+      category: bestMatch.category,
+      landmarkId: landmarkId
+    };
+  }
   
-  // 1. Casual Conversational Intent Handler (Most specific prioritized first)
+  // C. Casual Conversational Intent Handler (Most specific prioritized first, strict word boundaries)
   const casualIntents = [
     {
       keywords: [
@@ -407,7 +449,11 @@ const _processChatQuery = async (
   ];
 
   for (const intent of casualIntents) {
-    if (intent.keywords.some(k => cleanedQuery === k || cleanedQuery.includes(k) || normalizedQuery.includes(k))) {
+    if (intent.keywords.some(k => {
+      if (cleanedQuery === k) return true;
+      const wordRegex = new RegExp(`\\b${k.replace(/[-\/\\^$*+?.()|[\]{}]/g, '\\$&')}\\b`, 'i');
+      return wordRegex.test(cleanedQuery);
+    })) {
       return {
         text: intent.response.replace(/%name%/g, userFirstName),
         category: intent.category
@@ -415,7 +461,7 @@ const _processChatQuery = async (
     }
   }
 
-  // 2. Follow-Up Query Resolution (Memory-Aware)
+  // D. Follow-Up Query Resolution (Memory-Aware)
   if (isFollowUpQuery(query) && history.length > 0) {
     let lastCategory: string | null = null;
     let lastMatchedEntryName: string | null = null;
@@ -466,53 +512,8 @@ const _processChatQuery = async (
     }
   }
 
-  // 3. Category Detection
+  // E. Category Detection & Fallback
   const queryCategory = getQueryCategory(query);
-
-  // 4. Specific POI Entry Search
-  let bestMatch = null;
-  let highestScore = 0;
-
-  for (const entry of knowledgeBase) {
-    let score = getSpecificMatchScore(query, entry.keywords);
-    
-    // Direct name match boost
-    const name = getEntryName(entry.response, entry.keywords);
-    const cleanedName = cleanText(name);
-    if (cleanedQuery === cleanedName) {
-      score += 15;
-    } else if (cleanedQuery.includes(cleanedName) || cleanedName.includes(cleanedQuery)) {
-      const wordRegex = new RegExp(`\\b${cleanedName.replace(/[-\/\\^$*+?.()|[\]{}]/g, '\\$&')}\\b`, 'i');
-      if (wordRegex.test(cleanedQuery)) {
-        score += 8;
-      }
-    }
-
-    if (score > highestScore) {
-      highestScore = score;
-      bestMatch = entry;
-    }
-  }
-
-  // Resolve landmarkId if possible
-  let landmarkId: string | undefined = undefined;
-  for (const [key, id] of Object.entries(LANDMARK_MAPPINGS)) {
-    if (cleanedQuery.includes(key) || (bestMatch && highestScore >= 4 && bestMatch.keywords.some((kw: string) => cleanText(kw).includes(key)))) {
-      landmarkId = id;
-      break;
-    }
-  }
-
-  // If we have a highly confident specific POI match, serve it
-  if (bestMatch && highestScore >= 4) {
-    return {
-      text: bestMatch.response.replace(/%name%/g, userFirstName),
-      category: bestMatch.category,
-      landmarkId: landmarkId
-    };
-  }
-
-  // 5. General Category List Fallback
   if (queryCategory) {
     const formatted = formatCategoryList(queryCategory);
     return {
