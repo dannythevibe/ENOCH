@@ -6,7 +6,9 @@ import { Loader2 } from 'lucide-react';
 import { landmarks } from '../../lib/mock-data';
 import { api } from '../../lib/api';
 
-// Dynamic import for Leaflet map to disable SSR issues
+import { computeRoute } from '../../lib/routing';
+
+// Dynamic import for maps to disable SSR issues
 const CoordinateGrid = dynamic(
   () => import('../map/CoordinateGrid'),
   { 
@@ -14,7 +16,20 @@ const CoordinateGrid = dynamic(
     loading: () => (
       <div className="w-full h-full flex flex-col items-center justify-center bg-[#121314] gap-3">
         <Loader2 className="animate-spin text-[#c3f400]" size={32} />
-        <span className="text-[#c4c9ac] text-xs font-bold tracking-widest uppercase">Loading Campus Map...</span>
+        <span className="text-[#c4c9ac] text-xs font-bold tracking-widest uppercase">Loading Offline Map...</span>
+      </div>
+    ) 
+  }
+);
+
+const GoogleMapGrid = dynamic(
+  () => import('../map/GoogleMapGrid'),
+  { 
+    ssr: false, 
+    loading: () => (
+      <div className="w-full h-full flex flex-col items-center justify-center bg-[#121314] gap-3">
+        <Loader2 className="animate-spin text-[#c3f400]" size={32} />
+        <span className="text-[#c4c9ac] text-xs font-bold tracking-widest uppercase">Loading Live Maps...</span>
       </div>
     ) 
   }
@@ -35,12 +50,16 @@ function getDistanceFromLatLonInMeters(lat1: number, lon1: number, lat2: number,
 
 interface NavigationModuleProps {
   initialDestinationId?: string;
+  initialSourceId?: string;
 }
 
-export default function NavigationModule({ initialDestinationId = '' }: NavigationModuleProps) {
+export default function NavigationModule({ initialDestinationId = '', initialSourceId = '' }: NavigationModuleProps) {
   const [searchQuery, setSearchQuery] = useState('');
   const [selectedDestinationId, setSelectedDestinationId] = useState<string>(initialDestinationId);
-  const [userLoc, setUserLoc] = useState<{lat: number, lng: number}>({ lat: 6.8180, lng: 3.4630 });
+  const [selectedSourceId, setSelectedSourceId] = useState<string>(initialSourceId);
+  const [userLoc, setUserLoc] = useState<{lat: number, lng: number}>({ lat: 6.8085, lng: 3.4565 });
+  const [mapMode, setMapMode] = useState<'offline' | 'live'>('offline');
+  const [simulateLocation, setSimulateLocation] = useState<boolean>(true);
 
   useEffect(() => {
     if (initialDestinationId) {
@@ -50,12 +69,24 @@ export default function NavigationModule({ initialDestinationId = '' }: Navigati
         setSearchQuery(lm.name);
       }
     }
-  }, [initialDestinationId]);
+    if (initialSourceId) {
+      setSelectedSourceId(initialSourceId);
+    }
+  }, [initialDestinationId, initialSourceId]);
   const [gpsPrecision, setGpsPrecision] = useState('0.5m');
   const [showSearchResults, setShowSearchResults] = useState(false);
   const [mapTheme, setMapTheme] = useState<'dark' | 'light' | 'satellite'>('dark');
 
   const destination = landmarks.find(l => l.id === selectedDestinationId);
+
+  // Compute street path using client-side Dijkstra
+  const route = selectedDestinationId 
+    ? computeRoute(
+        selectedSourceId ? landmarks.find(l => l.id === selectedSourceId)?.lat || userLoc.lat : userLoc.lat,
+        selectedSourceId ? landmarks.find(l => l.id === selectedSourceId)?.lng || userLoc.lng : userLoc.lng,
+        selectedDestinationId
+      )
+    : null;
 
   useEffect(() => {
     if (!navigator.geolocation) {
@@ -64,26 +95,34 @@ export default function NavigationModule({ initialDestinationId = '' }: Navigati
 
     const watchId = navigator.geolocation.watchPosition(
       (position) => {
-        const coords = { lat: position.coords.latitude, lng: position.coords.longitude };
-        setUserLoc(coords);
+        const physicalCoords = { lat: position.coords.latitude, lng: position.coords.longitude };
+        const isWithinCamp = physicalCoords.lat >= 6.79 && physicalCoords.lat <= 6.83 && physicalCoords.lng >= 3.44 && physicalCoords.lng <= 3.48;
+        
+        if (!isWithinCamp && simulateLocation) {
+          // Clamp user coordinates to camp center for testing outside Mowe
+          setUserLoc({ lat: 6.8085, lng: 3.4565 }); // National Secretariat start point
+        } else {
+          setUserLoc(physicalCoords);
+        }
+        
         setGpsPrecision(`${position.coords.accuracy ? position.coords.accuracy.toFixed(1) : '0.5'}m`);
         
         // Post GPS location in background
         api.post('/api/locations', {
-          latitude: coords.lat,
-          longitude: coords.lng
+          deviceId: 1,
+          latitude: !isWithinCamp && simulateLocation ? 6.8085 : physicalCoords.lat,
+          longitude: !isWithinCamp && simulateLocation ? 3.4565 : physicalCoords.lng
         }).catch(err => console.error('GPS sync failed:', err));
       },
       (error) => {
         console.warn('GPS error fallback:', error.message);
-        // Fallback to center coordinates
-        setUserLoc({ lat: 6.8180, lng: 3.4630 });
+        setUserLoc({ lat: 6.8085, lng: 3.4565 });
       },
       { enableHighAccuracy: true, timeout: 10000, maximumAge: 0 }
     );
 
     return () => navigator.geolocation.clearWatch(watchId);
-  }, []);
+  }, [simulateLocation]);
 
   const filteredLandmarks = landmarks.filter(l => 
     l.name.toLowerCase().includes(searchQuery.toLowerCase())
@@ -152,15 +191,38 @@ export default function NavigationModule({ initialDestinationId = '' }: Navigati
 
           {/* Telemetry Dashboard */}
           <div className="flex flex-col gap-2 mt-4">
-
-            <div className="bg-[#1a1b1c] rounded-xl p-4 border border-white/5 flex gap-4 mt-2">
-              <div className="flex-1 border-r border-white/10">
-                <p className="text-[9px] font-bold text-[#c4c9ac] tracking-wider uppercase">GPS PRECISION</p>
-                <p className="text-xl font-black text-white mt-1 tabular-nums">{gpsPrecision}</p>
+            <div className="bg-[#1a1b1c] rounded-xl p-4 border border-white/5 flex flex-col gap-3">
+              <div className="flex justify-between items-center pb-2 border-b border-white/5">
+                <div>
+                  <p className="text-[9px] font-bold text-[#c4c9ac] tracking-wider uppercase">GPS Simulation</p>
+                  <p className="text-[10px] text-[#c4c9ac]/50">Snaps location inside camp grounds</p>
+                </div>
+                <button 
+                  onClick={() => setSimulateLocation(!simulateLocation)}
+                  className={`relative inline-flex h-5 w-9 items-center rounded-full transition-colors cursor-pointer ${
+                    simulateLocation ? 'bg-[#c3f400]' : 'bg-[#343536]'
+                  }`}
+                  title="Toggle Simulated Coordinates"
+                >
+                  <span className={`inline-block h-3.5 w-3.5 transform rounded-full transition-transform ${
+                    simulateLocation ? 'translate-x-5 bg-black' : 'translate-x-0.5 bg-[#c4c9ac]'
+                  }`} />
+                </button>
               </div>
-              <div className="flex-1">
-                <p className="text-[9px] font-bold text-[#c4c9ac] tracking-wider uppercase">CACHE VERSION</p>
-                <p className="text-sm font-bold text-white mt-1.5">v1.0.24</p>
+              
+              <div className="flex gap-4">
+                <div className="flex-1 border-r border-white/10">
+                  <p className="text-[9px] font-bold text-[#c4c9ac] tracking-wider uppercase">GPS PRECISION</p>
+                  <p className="text-sm font-bold text-white mt-1 tabular-nums">
+                    {simulateLocation ? 'Simulated' : gpsPrecision}
+                  </p>
+                </div>
+                <div className="flex-1">
+                  <p className="text-[9px] font-bold text-[#c4c9ac] tracking-wider uppercase">COORDINATES</p>
+                  <p className="text-[10px] font-bold text-white mt-1.5 truncate">
+                    {userLoc.lat.toFixed(4)}, {userLoc.lng.toFixed(4)}
+                  </p>
+                </div>
               </div>
             </div>
           </div>
@@ -180,15 +242,28 @@ export default function NavigationModule({ initialDestinationId = '' }: Navigati
                 </div>
                 <div className="flex items-center justify-between mt-4">
                   <span className="text-xs font-semibold text-[#c4c9ac]">
-                    {getDistanceFromLatLonInMeters(userLoc.lat, userLoc.lng, destination.lat, destination.lng)}m • Active
+                    {route ? `${route.distance}m` : getDistanceFromLatLonInMeters(userLoc.lat, userLoc.lng, destination.lat, destination.lng) + 'm'} • Active
                   </span>
                   <button 
-                    onClick={() => { setSelectedDestinationId(''); setSearchQuery(''); }}
+                    onClick={() => { setSelectedDestinationId(''); setSelectedSourceId(''); setSearchQuery(''); }}
                     className="bg-[#343536] text-white px-4 py-1.5 rounded-xl text-xs font-bold uppercase tracking-wider hover:opacity-85 active:scale-95 transition-all cursor-pointer"
                   >
                     Clear
                   </button>
                 </div>
+
+                {/* Turn-by-Turn Directions */}
+                {route && route.directions.length > 0 && (
+                  <div className="mt-4 border-t border-white/5 pt-3 max-h-40 overflow-y-auto hide-scrollbar space-y-2">
+                    <p className="text-[9px] font-bold text-[#c3f400] tracking-wider uppercase mb-1">WALKING DIRECTIONS</p>
+                    {route.directions.map((step, idx) => (
+                      <div key={idx} className="flex gap-2 items-start text-[11px] text-[#c4c9ac] font-medium leading-relaxed">
+                        <span className="text-[#c3f400] text-xs">➔</span>
+                        <span>{step}</span>
+                      </div>
+                    ))}
+                  </div>
+                )}
               </div>
             ) : (
               <div className="glass-card p-4 rounded-[20px] border-l-4 border-white/20 shadow-xl flex flex-col">
@@ -269,10 +344,39 @@ export default function NavigationModule({ initialDestinationId = '' }: Navigati
 
       {/* Map Area */}
       <div className="flex-1 w-full h-full bg-transparent z-10 pt-16 md:pt-0 relative">
-        <CoordinateGrid userLocation={userLoc} destination={destination as any} mapTheme={mapTheme} />
+        {mapMode === 'live' ? (
+          <GoogleMapGrid 
+            userLocation={userLoc} 
+            destination={destination as any} 
+            mapTheme={mapTheme}
+            routeCoordinates={route?.coordinates}
+          />
+        ) : (
+          <CoordinateGrid 
+            userLocation={userLoc} 
+            destination={destination as any} 
+            mapTheme={mapTheme}
+            routeCoordinates={route?.coordinates}
+          />
+        )}
         
         {/* Floating Action Button (FAB) Over Map */}
         <div className="absolute right-6 bottom-52 md:bottom-10 md:right-10 z-20 flex flex-col gap-3 pointer-events-auto">
+          {/* Map Mode Toggle (Offline vs Google Maps Live) */}
+          <button 
+            onClick={() => setMapMode(prev => prev === 'offline' ? 'live' : 'offline')}
+            className={`w-12 h-12 rounded-full border flex items-center justify-center shadow-2xl active:scale-95 transition-all cursor-pointer ${
+              mapMode === 'live'
+                ? 'bg-[#c3f400] text-black border-transparent shadow-[0_0_15px_#c3f400]'
+                : 'bg-[#1a1b1c] text-white border-white/10 hover:bg-[#c3f400] hover:text-black hover:border-transparent'
+            }`}
+            title="Toggle Offline/Live Map Mode"
+          >
+            <span className="material-symbols-outlined">
+              {mapMode === 'live' ? 'satellite' : 'map'}
+            </span>
+          </button>
+
           {/* Map Theme Toggle */}
           <button 
             onClick={() => setMapTheme(prev => prev === 'dark' ? 'light' : prev === 'light' ? 'satellite' : 'dark')}
@@ -304,27 +408,39 @@ export default function NavigationModule({ initialDestinationId = '' }: Navigati
         </div>
 
         {/* Bottom Cards Mobile */}
-        <div className="md:hidden absolute bottom-24 left-0 w-full px-6 flex gap-3 overflow-x-auto hide-scrollbar z-20 pb-4 pointer-events-auto">
+        <div className="md:hidden absolute bottom-24 left-0 w-full px-6 flex flex-col gap-3 z-20 pb-4 pointer-events-auto">
           {destination ? (
-            <div className="min-w-[280px] glass-card p-4 rounded-[20px] border-l-4 border-[#c3f400] shadow-2xl flex flex-col justify-between">
+            <div className="w-full glass-card p-4 rounded-[20px] border-l-4 border-[#c3f400] shadow-2xl flex flex-col justify-between">
               <div className="flex justify-between items-start">
                 <div>
                   <p className="text-[9px] font-bold tracking-wider text-[#c3f400] uppercase">DESTINATION</p>
-                  <h3 className="font-bold text-base text-white mt-0.5 truncate max-w-[180px]">{destination.name}</h3>
+                  <h3 className="font-bold text-base text-white mt-0.5 truncate max-w-[240px]">{destination.name}</h3>
                 </div>
                 <span className="material-symbols-outlined text-[#c3f400]">navigation</span>
               </div>
               <div className="flex items-center justify-between mt-4">
                 <span className="text-xs font-semibold text-[#c4c9ac]">
-                  {getDistanceFromLatLonInMeters(userLoc.lat, userLoc.lng, destination.lat, destination.lng)}m • Active
+                  {route ? `${route.distance}m` : getDistanceFromLatLonInMeters(userLoc.lat, userLoc.lng, destination.lat, destination.lng) + 'm'} • Active
                 </span>
                 <button 
-                  onClick={() => { setSelectedDestinationId(''); setSearchQuery(''); }}
+                  onClick={() => { setSelectedDestinationId(''); setSelectedSourceId(''); setSearchQuery(''); }}
                   className="bg-[#343536] text-white px-4 py-1.5 rounded-xl text-xs font-bold uppercase tracking-wider hover:opacity-85 active:scale-95 transition-all cursor-pointer"
                 >
                   Clear
                 </button>
               </div>
+
+              {/* Mobile Turn-by-Turn Steps */}
+              {route && route.directions.length > 0 && (
+                <div className="mt-3 border-t border-white/5 pt-2 max-h-24 overflow-y-auto hide-scrollbar space-y-1">
+                  {route.directions.map((step, idx) => (
+                    <div key={idx} className="flex gap-2 items-start text-[10px] text-[#c4c9ac] font-medium leading-normal">
+                      <span className="text-[#c3f400]">➔</span>
+                      <span>{step}</span>
+                    </div>
+                  ))}
+                </div>
+              )}
             </div>
           ) : (
             <div className="min-w-[280px] glass-card p-4 rounded-[20px] border-l-4 border-white/20 shadow-2xl flex flex-col justify-between">

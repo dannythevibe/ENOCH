@@ -22,6 +22,7 @@ const tabs = [
 export default function AppShell({ onLogout }: { onLogout?: () => void }) {
   const [activeTab, setActiveTab] = useState('home');
   const [selectedLandmarkId, setSelectedLandmarkId] = useState<string>('');
+  const [selectedSourceId, setSelectedSourceId] = useState<string>('');
   const [user, setUser] = useState<{ id: number; email: string; fullName: string; profilePictureUrl?: string } | null>(null);
 
 
@@ -42,7 +43,7 @@ export default function AppShell({ onLogout }: { onLogout?: () => void }) {
       case 'home':
         return <DashboardModule onNavigate={setActiveTab} user={user} />;
       case 'map':
-        return <NavigationModule initialDestinationId={selectedLandmarkId} />;
+        return <NavigationModule initialDestinationId={selectedLandmarkId} initialSourceId={selectedSourceId} />;
       case 'devices':
         return <DeviceRecoveryModule />;
       case 'chat':
@@ -50,7 +51,14 @@ export default function AppShell({ onLogout }: { onLogout?: () => void }) {
           <AIChatModule 
             userName={user?.fullName || 'Guest'} 
             onNavigateToMap={(landmarkId) => {
-              setSelectedLandmarkId(landmarkId);
+              if (landmarkId.includes('->')) {
+                const [src, dest] = landmarkId.split('->');
+                setSelectedSourceId(src);
+                setSelectedLandmarkId(dest);
+              } else {
+                setSelectedSourceId('');
+                setSelectedLandmarkId(landmarkId);
+              }
               setActiveTab('map');
             }}
           />

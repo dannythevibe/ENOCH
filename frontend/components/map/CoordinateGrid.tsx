@@ -14,9 +14,10 @@ interface CoordinateGridProps {
   userLocation: Point;
   destination?: { id: string; name: string; lat: number; lng: number };
   mapTheme?: 'dark' | 'light' | 'satellite';
+  routeCoordinates?: [number, number][]; // Computed street paths
 }
 
-export default function CoordinateGrid({ userLocation, destination, mapTheme = 'dark' }: CoordinateGridProps) {
+export default function CoordinateGrid({ userLocation, destination, mapTheme = 'dark', routeCoordinates }: CoordinateGridProps) {
   const mapRef = useRef<MapRef>(null);
 
   // Redemption City coordinates for initial center
@@ -48,15 +49,12 @@ export default function CoordinateGrid({ userLocation, destination, mapTheme = '
     }
   }, [destination]);
 
-  const routeGeoJSON: any = destination && userLocation.lat !== 0 ? {
+  const routeGeoJSON: any = routeCoordinates && routeCoordinates.length > 0 ? {
     type: 'Feature',
     properties: {},
     geometry: {
       type: 'LineString',
-      coordinates: [
-        [userLocation.lng, userLocation.lat],
-        [destination.lng, destination.lat]
-      ]
+      coordinates: routeCoordinates
     }
   } : null;
 
@@ -95,6 +93,7 @@ export default function CoordinateGrid({ userLocation, destination, mapTheme = '
         dragRotate={true}
         pitchWithRotate={true}
         style={{ width: '100%', height: '100%' }}
+        attributionControl={false}
       >
         {/* User Marker */}
         {userLocation.lat !== 0 && (
