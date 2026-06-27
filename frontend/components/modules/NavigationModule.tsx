@@ -22,18 +22,7 @@ const CoordinateGrid = dynamic(
   }
 );
 
-const GoogleMapGrid = dynamic(
-  () => import('../map/GoogleMapGrid'),
-  { 
-    ssr: false, 
-    loading: () => (
-      <div className="w-full h-full flex flex-col items-center justify-center bg-[#121314] gap-3">
-        <Loader2 className="animate-spin text-[#c3f400]" size={32} />
-        <span className="text-[#c4c9ac] text-xs font-bold tracking-widest uppercase">Loading Live Maps...</span>
-      </div>
-    ) 
-  }
-);
+
 
 // Distance calculator
 function getDistanceFromLatLonInMeters(lat1: number, lon1: number, lat2: number, lon2: number) {
@@ -345,7 +334,7 @@ export default function NavigationModule({ initialDestinationId = '', initialSou
       {/* Map Area */}
       <div className="flex-1 w-full h-full bg-transparent z-10 pt-16 md:pt-0 relative">
         {mapMode === 'live' ? (
-          <GoogleMapGrid 
+          <CoordinateGrid 
             userLocation={userLoc} 
             destination={destination as any} 
             mapTheme={mapTheme}
@@ -355,7 +344,7 @@ export default function NavigationModule({ initialDestinationId = '', initialSou
           <CoordinateGrid 
             userLocation={userLoc} 
             destination={destination as any} 
-            mapTheme={mapTheme}
+            mapTheme="offline"
             routeCoordinates={route?.coordinates}
           />
         )}
@@ -379,7 +368,13 @@ export default function NavigationModule({ initialDestinationId = '', initialSou
 
           {/* Map Theme Toggle */}
           <button 
-            onClick={() => setMapTheme(prev => prev === 'dark' ? 'light' : prev === 'light' ? 'satellite' : 'dark')}
+            onClick={() => {
+              setMapTheme(prev => {
+                const next = prev === 'dark' ? 'light' : prev === 'light' ? 'satellite' : 'dark';
+                setMapMode('live');
+                return next;
+              });
+            }}
             className="w-12 h-12 rounded-full bg-[#1a1b1c] border border-white/10 text-white flex items-center justify-center shadow-2xl hover:bg-[#c3f400] hover:text-black hover:border-transparent active:scale-95 transition-all cursor-pointer"
             title="Toggle Map Theme"
           >

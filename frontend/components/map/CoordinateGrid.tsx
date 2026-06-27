@@ -13,9 +13,23 @@ interface Point {
 interface CoordinateGridProps {
   userLocation: Point;
   destination?: { id: string; name: string; lat: number; lng: number };
-  mapTheme?: 'dark' | 'light' | 'satellite';
+  mapTheme?: 'dark' | 'light' | 'satellite' | 'offline';
   routeCoordinates?: [number, number][]; // Computed street paths
 }
+
+const offlineGridStyle: any = {
+  version: 8,
+  sources: {},
+  layers: [
+    {
+      id: 'background',
+      type: 'background',
+      paint: {
+        'background-color': '#121314'
+      }
+    }
+  ]
+};
 
 export default function CoordinateGrid({ userLocation, destination, mapTheme = 'dark', routeCoordinates }: CoordinateGridProps) {
   const mapRef = useRef<MapRef>(null);
@@ -69,6 +83,7 @@ export default function CoordinateGrid({ userLocation, destination, mapTheme = '
           bearing: -20
         }}
         mapStyle={
+          mapTheme === 'offline' ? offlineGridStyle :
           mapTheme === 'satellite' ? {
             version: 8,
             sources: {
