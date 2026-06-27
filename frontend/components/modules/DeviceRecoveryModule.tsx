@@ -43,10 +43,7 @@ export default function DeviceRecoveryModule() {
         const apiDevices = res.data.map((d: any) => {
           const deviceId = d.id || d.Id;
           const deviceName = d.name || d.Name;
-          const isCurrentDevice = localStorage.getItem('registered_device_id') === deviceId.toString() || 
-                                  deviceName.includes('Windows') || 
-                                  deviceName.includes('MacBook') || 
-                                  deviceName.includes('Mac');
+          const isCurrentDevice = localStorage.getItem('registered_device_id') === deviceId.toString();
           
           return {
             id: deviceId,
@@ -63,11 +60,7 @@ export default function DeviceRecoveryModule() {
 
         // Lock terminal locally on load/poll if current registered device is secured
         const foundCurrent = apiDevices.find((x: any) => {
-          const isCurrent = localStorage.getItem('registered_device_id') === x.id.toString() || 
-                            x.name.includes('Windows') || 
-                            x.name.includes('MacBook') || 
-                            x.name.includes('Mac');
-          return isCurrent;
+          return localStorage.getItem('registered_device_id') === x.id.toString();
         });
         if (foundCurrent) {
           if (foundCurrent.status === 'Secured') {
@@ -171,10 +164,7 @@ export default function DeviceRecoveryModule() {
       setSelectedDevice(prev => prev ? { ...prev, status: 'Secured' } : null);
       setDevices(prev => prev.map(d => d.id === selectedDevice.id ? { ...d, status: 'Secured' } : d));
       
-      const isCurrent = localStorage.getItem('registered_device_id') === selectedDevice.id.toString() || 
-                        selectedDevice.name.includes('Windows') || 
-                        selectedDevice.name.includes('MacBook') || 
-                        selectedDevice.name.includes('Mac');
+      const isCurrent = localStorage.getItem('registered_device_id') === selectedDevice.id.toString();
       if (isCurrent) {
         setTimeout(() => {
           setIsAppLocked(true);
@@ -190,7 +180,7 @@ export default function DeviceRecoveryModule() {
   const handleUnlock = (e: React.FormEvent) => {
     e.preventDefault();
     const currentRegId = localStorage.getItem('registered_device_id');
-    const currentDevice = devices.find(d => d.id.toString() === currentRegId || d.name.includes('Windows') || d.name.includes('Mac'));
+    const currentDevice = devices.find(d => d.id.toString() === currentRegId);
     const savedPasscode = currentDevice?.desktopPasscode || 'unlock';
 
     if (unlockPassword === savedPasscode || unlockPassword.toLowerCase() === 'unlock') {
