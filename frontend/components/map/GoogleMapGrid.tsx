@@ -96,6 +96,20 @@ export default function GoogleMapGrid({
   const mapRef = useRef<any>(null);
   const [apiLoaded, setApiLoaded] = useState(false);
   const [loadError, setLoadError] = useState(false);
+  const [is3D, setIs3D] = useState(false);
+
+  const toggle3D = () => {
+    if (!mapRef.current) return;
+    if (is3D) {
+      mapRef.current.setTilt(0);
+      mapRef.current.setHeading(0);
+      setIs3D(false);
+    } else {
+      mapRef.current.setTilt(45);
+      mapRef.current.setHeading(35);
+      setIs3D(true);
+    }
+  };
   
   const userMarkerRef = useRef<any>(null);
   const destMarkerRef = useRef<any>(null);
@@ -149,12 +163,13 @@ export default function GoogleMapGrid({
     const mapOptions: any = {
       center: initialCenter,
       zoom: 16,
+      maxZoom: 22,
       disableDefaultUI: true,
       zoomControl: false,
       mapTypeControl: false,
       scaleControl: false,
       streetViewControl: false,
-      rotateControl: false,
+      rotateControl: true,
       fullscreenControl: false,
       styles: mapTheme === 'dark' ? darkMapStyle : [],
       mapTypeId: mapTheme === 'satellite' ? google.maps.MapTypeId.HYBRID : google.maps.MapTypeId.ROADMAP
@@ -318,6 +333,20 @@ export default function GoogleMapGrid({
         </div>
       )}
       <div ref={containerRef} className="w-full h-full google-map-container" />
+      
+      {apiLoaded && (
+        <button 
+          onClick={toggle3D}
+          className={`absolute top-4 right-4 z-30 flex items-center justify-center w-12 h-12 rounded-full border backdrop-blur-md transition-all duration-300 cursor-pointer ${
+            is3D 
+              ? 'border-[#CCFF00] bg-[#121314]/90 text-[#CCFF00] shadow-[0_0_15px_rgba(204,255,0,0.4)] scale-[1.05]' 
+              : 'border-[#444933]/50 bg-[#1b1c1d]/85 text-[#c4c9ac] hover:text-white hover:border-white/30'
+          }`}
+          title="Toggle 3D View"
+        >
+          <span className="material-symbols-outlined text-xl">{is3D ? 'view_in_ar' : '3d_rotation'}</span>
+        </button>
+      )}
 
       {/* Styled overrides injected locally to strip branding reference overlays */}
       <style jsx global>{`
