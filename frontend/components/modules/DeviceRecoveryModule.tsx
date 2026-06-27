@@ -61,7 +61,7 @@ export default function DeviceRecoveryModule() {
 
         setDevices(apiDevices);
 
-        // Lock terminal locally on load if current registered device is secured
+        // Lock terminal locally on load/poll if current registered device is secured
         const foundCurrent = apiDevices.find((x: any) => {
           const isCurrent = localStorage.getItem('registered_device_id') === x.id.toString() || 
                             x.name.includes('Windows') || 
@@ -69,8 +69,12 @@ export default function DeviceRecoveryModule() {
                             x.name.includes('Mac');
           return isCurrent;
         });
-        if (foundCurrent && foundCurrent.status === 'Secured') {
-          setIsAppLocked(true);
+        if (foundCurrent) {
+          if (foundCurrent.status === 'Secured') {
+            setIsAppLocked(true);
+          } else {
+            setIsAppLocked(false);
+          }
         }
 
         setSelectedDevice(prev => {
@@ -88,6 +92,11 @@ export default function DeviceRecoveryModule() {
 
   useEffect(() => {
     fetchDevices();
+
+    // Set up 5-second polling for real-time mesh telemetry updates
+    const intervalId = setInterval(() => {
+      fetchDevices();
+    }, 5000);
     
     // Extract Device Specs & Live Battery Percentage
     if (typeof window !== 'undefined') {
@@ -116,6 +125,8 @@ export default function DeviceRecoveryModule() {
         });
       }
     }
+
+    return () => clearInterval(intervalId);
   }, []);
 
   const handlePlaySound = () => {
@@ -258,19 +269,28 @@ export default function DeviceRecoveryModule() {
           </div>
 
           {/* Devices Selector List */}
-          {devices.length > 1 && (
+          {devices.length > 0 && (
             <div className="space-y-3">
-              <h3 className="text-xs font-bold tracking-widest text-[#c4c9ac] uppercase px-1">Registered Nodes</h3>
+              <h3 className="text-xs font-bold tracking-widest text-[#c4c9ac] uppercase px-1">Registered Nodes ({devices.length})</h3>
               <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-2 xl:grid-cols-3 gap-3">
                 {devices.map((device) => {
-                  if (device.id === selectedDevice?.id) return null;
+                  const isSelected = device.id === selectedDevice?.id;
                   return (
                     <button
                       key={device.id}
                       onClick={() => setSelectedDevice(device)}
-                      className="glass-card px-4 py-4 rounded-2xl flex flex-col items-start hover:bg-white/5 active:scale-95 transition-all cursor-pointer text-left select-none border border-transparent hover:border-[#CCFF00]/30"
+                      className={`glass-card px-4 py-4 rounded-2xl flex flex-col items-start hover:bg-white/5 active:scale-95 transition-all cursor-pointer text-left select-none border ${
+                        isSelected 
+                          ? 'border-[#CCFF00] bg-[#CCFF00]/5 shadow-[0_0_12px_rgba(204,255,0,0.15)]' 
+                          : 'border-transparent hover:border-[#CCFF00]/30'
+                      }`}
                     >
-                      <h4 className="text-white font-bold text-sm truncate w-full">{device.name}</h4>
+                      <div className="flex items-center justify-between w-full gap-1.5">
+                        <h4 className="text-white font-bold text-sm truncate w-full">{device.name}</h4>
+                        {device.status === 'Secured' && (
+                          <span className="w-2.5 h-2.5 rounded-full bg-red-500 shadow-[0_0_8px_#ef4444] shrink-0" title="Secured / Locked"></span>
+                        )}
+                      </div>
                       <div className="flex justify-between items-center w-full mt-2">
                         <p className="text-[#c4c9ac] text-[10px]">{device.lastSeen}</p>
                         <span className="text-[#CCFF00] font-bold text-xs">{device.battery}%</span>
