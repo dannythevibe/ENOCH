@@ -31,25 +31,25 @@ export async function POST(request: Request) {
     const user = getUserFromRequest(request);
     if (!user) return NextResponse.json({ message: 'Unauthorized' }, { status: 401 });
 
-    const { name, macAddress } = await request.json();
+    const { name, macAddress, batteryLevel } = await request.json();
     if (!name || !macAddress) {
       return NextResponse.json({ message: 'Name and macAddress are required' }, { status: 400 });
     }
 
-    const batteryLevel = Math.floor(Math.random() * 40) + 60; // Mock battery
+    const finalBattery = batteryLevel !== undefined ? Number(batteryLevel) : Math.floor(Math.random() * 40) + 60;
     const location = "Redemption Campus, Library"; // Mock initial location
     const status = "Connected";
 
     const result = await dbRun(
       'INSERT INTO Devices (Name, MacAddress, UserId, BatteryLevel, Location, Status) VALUES (?, ?, ?, ?, ?, ?)',
-      [name, macAddress, user.id, batteryLevel, location, status]
+      [name, macAddress, user.id, finalBattery, location, status]
     );
 
     return NextResponse.json({
       id: result.lastID,
       name,
       macAddress,
-      batteryLevel,
+      batteryLevel: finalBattery,
       location,
       status
     }, { status: 201 });

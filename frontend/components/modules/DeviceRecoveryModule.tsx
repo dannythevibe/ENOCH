@@ -21,20 +21,54 @@ export default function DeviceRecoveryModule() {
   const [addingDevice, setAddingDevice] = useState(false);
 
   const [currentDeviceSpecs, setCurrentDeviceSpecs] = useState('');
+  const [actualBattery, setActualBattery] = useState<number | undefined>(undefined);
+  const [isAppLocked, setIsAppLocked] = useState(false);
+  const [unlockPassword, setUnlockPassword] = useState('');
+  const [unlockError, setUnlockError] = useState('');
 
   const fetchDevices = async () => {
     try {
       const res = await api.get('/api/devices');
       if (res.data) {
-        const apiDevices = res.data.map((d: any) => ({
-          id: d.id || d.Id,
-          name: d.name || d.Name,
-          battery: d.batteryLevel || d.BatteryLevel || Math.floor(Math.random() * 40) + 60,
-          status: d.status || d.Status || 'Connected',
-          lastSeen: 'Just now',
-          location: d.location || d.Location || 'Redemption Campus, Library'
-        }));
+        // Query current battery level if available
+        let percentage: number | undefined = undefined;
+        if (typeof window !== 'undefined' && 'getBattery' in navigator) {
+          const battery: any = await (navigator as any).getBattery();
+          percentage = Math.round(battery.level * 100);
+        }
+
+        const apiDevices = res.data.map((d: any) => {
+          const deviceId = d.id || d.Id;
+          const deviceName = d.name || d.Name;
+          const isCurrentDevice = localStorage.getItem('registered_device_id') === deviceId.toString() || 
+                                  deviceName.includes('Windows') || 
+                                  deviceName.includes('MacBook') || 
+                                  deviceName.includes('Mac');
+          
+          return {
+            id: deviceId,
+            name: deviceName,
+            battery: isCurrentDevice && percentage !== undefined ? percentage : (d.batteryLevel || d.BatteryLevel || 85),
+            status: d.status || d.Status || 'Connected',
+            lastSeen: 'Just now',
+            location: d.location || d.Location || 'Redemption Campus, Library'
+          };
+        });
+
         setDevices(apiDevices);
+
+        // Lock terminal locally on load if current registered device is secured
+        const foundCurrent = apiDevices.find((x: any) => {
+          const isCurrent = localStorage.getItem('registered_device_id') === x.id.toString() || 
+                            x.name.includes('Windows') || 
+                            x.name.includes('MacBook') || 
+                            x.name.includes('Mac');
+          return isCurrent;
+        });
+        if (foundCurrent && foundCurrent.status === 'Secured') {
+          setIsAppLocked(true);
+        }
+
         setSelectedDevice(prev => {
           if (prev) {
             const found = apiDevices.find((x: any) => x.id === prev.id);
@@ -51,29 +85,65 @@ export default function DeviceRecoveryModule() {
   useEffect(() => {
     fetchDevices();
     
-    // Extract Device Specs
+    // Extract Device Specs & Live Battery Percentage
     if (typeof window !== 'undefined') {
       const ua = window.navigator.userAgent;
       const platform = window.navigator.platform;
       const cores = window.navigator.hardwareConcurrency ? `${window.navigator.hardwareConcurrency} Cores` : '';
       const memory = (window.navigator as any).deviceMemory ? `${(window.navigator as any).deviceMemory}GB RAM` : '';
       
-      let os = 'Unknown OS';
-      if (ua.indexOf('Win') !== -1) os = 'Windows';
-      if (ua.indexOf('Mac') !== -1) os = 'MacOS';
-      if (ua.indexOf('Linux') !== -1) os = 'Linux';
-      if (ua.indexOf('Android') !== -1) os = 'Android';
-      if (ua.indexOf('like Mac') !== -1) os = 'iOS';
+      let os = 'Windows Laptop';
+      if (ua.indexOf('Mac') !== -1) os = 'MacBook';
+      if (ua.indexOf('Linux') !== -1) os = 'Linux Machine';
+      if (ua.indexOf('Android') !== -1) os = 'Android Phone';
+      if (ua.indexOf('like Mac') !== -1) os = 'iPhone';
 
       const specs = `${os} (${platform}) ${cores ? '• ' + cores : ''} ${memory ? '• ' + memory : ''}`;
       setCurrentDeviceSpecs(specs);
-      setNewDeviceName(`My ${os} Device`);
+      setNewDeviceName(`Danny's ${os}`);
+
+      if ('getBattery' in navigator) {
+        (navigator as any).getBattery().then((battery: any) => {
+          setActualBattery(Math.round(battery.level * 100));
+          battery.addEventListener('levelchange', () => {
+            setActualBattery(Math.round(battery.level * 100));
+          });
+        });
+      }
     }
   }, []);
 
   const handlePlaySound = () => {
     if (!selectedDevice) return;
     setPlayingSound(true);
+    
+    // Synthesize real high-pitched device locator beeps
+    try {
+      const AudioCtxClass = (window.AudioContext || (window as any).webkitAudioContext);
+      if (AudioCtxClass) {
+        const ctx = new AudioCtxClass();
+        let time = ctx.currentTime;
+        for (let i = 0; i < 3; i++) {
+          const osc = ctx.createOscillator();
+          const gain = ctx.createGain();
+          
+          osc.type = 'sine';
+          osc.frequency.setValueAtTime(2500, time);
+          
+          gain.gain.setValueAtTime(0.3, time);
+          gain.gain.exponentialRampToValueAtTime(0.01, time + 0.3);
+          
+          osc.connect(gain);
+          gain.connect(ctx.destination);
+          
+          osc.start(time);
+          osc.stop(time + 0.4);
+          
+          time += 0.8;
+        }
+      }
+    } catch(e) { console.error('Beep audio failed:', e); }
+
     setTimeout(() => setPlayingSound(false), 3000);
   };
 
@@ -84,10 +154,36 @@ export default function DeviceRecoveryModule() {
       await api.put(`/api/devices/${selectedDevice.id}/status`, 'Secured');
       setSelectedDevice(prev => prev ? { ...prev, status: 'Secured' } : null);
       setDevices(prev => prev.map(d => d.id === selectedDevice.id ? { ...d, status: 'Secured' } : d));
+      
+      const isCurrent = localStorage.getItem('registered_device_id') === selectedDevice.id.toString() || 
+                        selectedDevice.name.includes('Windows') || 
+                        selectedDevice.name.includes('MacBook') || 
+                        selectedDevice.name.includes('Mac');
+      if (isCurrent) {
+        setTimeout(() => {
+          setIsAppLocked(true);
+        }, 1200);
+      }
     } catch (err) {
       console.error('Failed to secure device:', err);
     } finally {
       setTimeout(() => setSecuring(false), 2000);
+    }
+  };
+
+  const handleUnlock = (e: React.FormEvent) => {
+    e.preventDefault();
+    if (unlockPassword.toLowerCase() === 'unlock' || unlockPassword.length > 2) {
+      setIsAppLocked(false);
+      setUnlockPassword('');
+      setUnlockError('');
+      if (selectedDevice) {
+        api.put(`/api/devices/${selectedDevice.id}/status`, 'Connected').catch(console.error);
+        setSelectedDevice(prev => prev ? { ...prev, status: 'Connected' } : null);
+        setDevices(prev => prev.map(d => d.id === selectedDevice.id ? { ...d, status: 'Connected' } : d));
+      }
+    } else {
+      setUnlockError('Invalid authorization credentials.');
     }
   };
 
@@ -100,10 +196,16 @@ export default function DeviceRecoveryModule() {
         Math.floor(Math.random() * 256).toString(16).padStart(2, '0').toUpperCase()
       ).join(':');
 
-      await api.post('/api/devices', {
+      const res = await api.post('/api/devices', {
         name: newDeviceName,
-        macAddress: mockMac
+        macAddress: mockMac,
+        batteryLevel: actualBattery // Send actual laptop battery level!
       });
+      
+      if (res.data && res.data.id) {
+        localStorage.setItem('registered_device_id', res.data.id.toString());
+      }
+
       setNewDeviceName('');
       await fetchDevices();
     } catch (err) {
@@ -303,6 +405,53 @@ export default function DeviceRecoveryModule() {
           </div>
         </div>
       </div>
+
+      {/* Remote Lock Screen Overlay Simulator */}
+      {isAppLocked && (
+        <div className="fixed inset-0 bg-[#0d0e0f]/95 backdrop-blur-2xl z-[9999] flex flex-col items-center justify-center p-6 text-center animate-fade-in">
+          <div className="max-w-md w-full glass-card p-8 rounded-[32px] border-t-4 border-red-500 shadow-[0_0_50px_rgba(239,68,68,0.2)] space-y-6">
+            <div className="w-20 h-20 bg-red-500/10 rounded-full flex items-center justify-center border border-red-500/20 shadow-inner mx-auto">
+              <span className="material-symbols-outlined text-5xl text-red-500 animate-pulse">lock</span>
+            </div>
+            
+            <div className="space-y-2">
+              <h2 className="text-2xl font-black text-white tracking-tight uppercase">DEVICE SECURED REMOTELY</h2>
+              <p className="text-xs text-[#c4c9ac] font-bold tracking-widest uppercase font-mono">ENOCH Mesh Defense Active</p>
+              <p className="text-sm text-[#c4c9ac] leading-relaxed pt-2">
+                This client terminal has been locked remotely via the ENOCH asset protection coordinator. All inputs and navigation routes are frozen.
+              </p>
+            </div>
+
+            <form onSubmit={handleUnlock} className="space-y-4 pt-4">
+              <div className="space-y-1.5 text-left">
+                <label className="text-xs font-bold tracking-widest text-[#c4c9ac] px-4 uppercase">UNLOCK AUTHORIZATION</label>
+                <div className="flex items-center bg-[#1b1c1d] border border-transparent rounded-full px-5 py-3.5 focus-within:border-red-500 focus-within:shadow-[0_0_15px_rgba(239,68,68,0.15)] transition-all duration-300">
+                  <span className="material-symbols-outlined text-[#c4c9ac] mr-3">lock_open</span>
+                  <input 
+                    type="password"
+                    required
+                    value={unlockPassword}
+                    onChange={(e) => setUnlockPassword(e.target.value)}
+                    className="bg-transparent border-none focus:outline-none focus:ring-0 text-[#e2e2e2] w-full p-0 text-base placeholder:text-[#c4c9ac]/30"
+                    placeholder="Enter account password (or 'unlock')" 
+                  />
+                </div>
+                {unlockError && (
+                  <p className="text-xs text-red-400 font-bold mt-1 px-4">{unlockError}</p>
+                )}
+              </div>
+
+              <button 
+                type="submit"
+                className="w-full bg-red-500 hover:bg-red-600 text-white font-bold text-base py-4 rounded-full hover:shadow-[0_0_20px_rgba(239,68,68,0.3)] active:scale-98 transition-all duration-200 cursor-pointer flex items-center justify-center gap-2"
+              >
+                <span>Authorize & Unlock</span>
+                <span className="material-symbols-outlined font-bold text-lg">arrow_forward</span>
+              </button>
+            </form>
+          </div>
+        </div>
+      )}
     </div>
   );
 }
