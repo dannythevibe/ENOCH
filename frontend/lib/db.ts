@@ -83,7 +83,8 @@ export const dbRun = async (sql: string, params: any[] = []): Promise<{ lastID: 
       UserId: params[2],
       BatteryLevel: params[3],
       Location: params[4],
-      Status: params[5]
+      Status: params[5],
+      DesktopPasscode: params[6] || ''
     });
     writeDB(db);
     return { lastID: id };

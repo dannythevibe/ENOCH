@@ -10,6 +10,7 @@ interface Device {
   status?: string;
   lastSeen?: string;
   location?: string;
+  desktopPasscode?: string;
 }
 
 export default function DeviceRecoveryModule() {
@@ -19,12 +20,14 @@ export default function DeviceRecoveryModule() {
   const [securing, setSecuring] = useState(false);
   const [newDeviceName, setNewDeviceName] = useState('');
   const [addingDevice, setAddingDevice] = useState(false);
+  const [desktopPasscode, setDesktopPasscode] = useState('');
 
   const [currentDeviceSpecs, setCurrentDeviceSpecs] = useState('');
   const [actualBattery, setActualBattery] = useState<number | undefined>(undefined);
   const [isAppLocked, setIsAppLocked] = useState(false);
   const [unlockPassword, setUnlockPassword] = useState('');
   const [unlockError, setUnlockError] = useState('');
+  const [detectedOS, setDetectedOS] = useState<'Windows' | 'macOS'>('Windows');
 
   const fetchDevices = async () => {
     try {
@@ -51,7 +54,8 @@ export default function DeviceRecoveryModule() {
             battery: isCurrentDevice && percentage !== undefined ? percentage : (d.batteryLevel || d.BatteryLevel || 85),
             status: d.status || d.Status || 'Connected',
             lastSeen: 'Just now',
-            location: d.location || d.Location || 'Redemption Campus, Library'
+            location: d.location || d.Location || 'Redemption Campus, Library',
+            desktopPasscode: d.desktopPasscode || d.DesktopPasscode || ''
           };
         });
 
@@ -101,6 +105,7 @@ export default function DeviceRecoveryModule() {
       const specs = `${os} (${platform}) ${cores ? '• ' + cores : ''} ${memory ? '• ' + memory : ''}`;
       setCurrentDeviceSpecs(specs);
       setNewDeviceName(`Danny's ${os}`);
+      setDetectedOS(ua.indexOf('Mac') !== -1 ? 'macOS' : 'Windows');
 
       if ('getBattery' in navigator) {
         (navigator as any).getBattery().then((battery: any) => {
@@ -173,7 +178,11 @@ export default function DeviceRecoveryModule() {
 
   const handleUnlock = (e: React.FormEvent) => {
     e.preventDefault();
-    if (unlockPassword.toLowerCase() === 'unlock' || unlockPassword.length > 2) {
+    const currentRegId = localStorage.getItem('registered_device_id');
+    const currentDevice = devices.find(d => d.id.toString() === currentRegId || d.name.includes('Windows') || d.name.includes('Mac'));
+    const savedPasscode = currentDevice?.desktopPasscode || 'unlock';
+
+    if (unlockPassword === savedPasscode || unlockPassword.toLowerCase() === 'unlock') {
       setIsAppLocked(false);
       setUnlockPassword('');
       setUnlockError('');
@@ -183,7 +192,7 @@ export default function DeviceRecoveryModule() {
         setDevices(prev => prev.map(d => d.id === selectedDevice.id ? { ...d, status: 'Connected' } : d));
       }
     } else {
-      setUnlockError('Invalid authorization credentials.');
+      setUnlockError(detectedOS === 'macOS' ? 'Incorrect Mac Password.' : 'Incorrect Windows PIN or Password.');
     }
   };
 
@@ -199,7 +208,8 @@ export default function DeviceRecoveryModule() {
       const res = await api.post('/api/devices', {
         name: newDeviceName,
         macAddress: mockMac,
-        batteryLevel: actualBattery // Send actual laptop battery level!
+        batteryLevel: actualBattery, // Send actual laptop battery level!
+        desktopPasscode: desktopPasscode // Send passcode!
       });
       
       if (res.data && res.data.id) {
@@ -207,6 +217,7 @@ export default function DeviceRecoveryModule() {
       }
 
       setNewDeviceName('');
+      setDesktopPasscode('');
       await fetchDevices();
     } catch (err) {
       console.error('Failed to add device:', err);
@@ -384,22 +395,39 @@ export default function DeviceRecoveryModule() {
                 <span className="text-[11px] text-[#c4c9ac] font-bold tracking-wider uppercase">{currentDeviceSpecs}</span>
               </div>
             )}
-
-            <form onSubmit={handleAddDevice} className="flex flex-col sm:flex-row gap-3">
-              <input
-                type="text"
-                required
-                value={newDeviceName}
-                onChange={(e) => setNewDeviceName(e.target.value)}
-                placeholder="e.g. Danny's iPhone 15"
-                className="flex-grow bg-[#1b1c1d] border border-white/5 rounded-xl px-6 py-4 text-base focus:outline-none focus:border-[#CCFF00] transition-colors text-white placeholder:text-[#c4c9ac]/30 shadow-inner"
-              />
+            
+            <form onSubmit={handleAddDevice} className="space-y-4">
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                <div className="space-y-1">
+                  <label className="text-[10px] font-bold tracking-widest text-[#c4c9ac] px-2 uppercase">Node Label</label>
+                  <input
+                    type="text"
+                    required
+                    value={newDeviceName}
+                    onChange={(e) => setNewDeviceName(e.target.value)}
+                    placeholder="e.g. Danny's MacBook"
+                    className="bg-[#1b1c1d] border border-white/5 rounded-xl px-5 py-3 text-sm focus:outline-none focus:border-[#CCFF00] transition-colors text-white placeholder:text-[#c4c9ac]/30 shadow-inner w-full"
+                  />
+                </div>
+                <div className="space-y-1">
+                  <label className="text-[10px] font-bold tracking-widest text-[#c4c9ac] px-2 uppercase">Desktop Passcode</label>
+                  <input
+                    type="password"
+                    required
+                    value={desktopPasscode}
+                    onChange={(e) => setDesktopPasscode(e.target.value)}
+                    placeholder="Desktop Lock Password"
+                    className="bg-[#1b1c1d] border border-white/5 rounded-xl px-5 py-3 text-sm focus:outline-none focus:border-[#CCFF00] transition-colors text-white placeholder:text-[#c4c9ac]/30 shadow-inner w-full"
+                  />
+                </div>
+              </div>
               <button
                 type="submit"
                 disabled={addingDevice}
-                className="bg-[#CCFF00] text-black font-bold text-sm px-8 py-4 rounded-xl hover:opacity-90 active:scale-95 transition-all cursor-pointer disabled:opacity-50 whitespace-nowrap shadow-lg shadow-[#CCFF00]/20"
+                className="w-full bg-[#CCFF00] text-black font-bold text-sm py-4 rounded-xl hover:opacity-90 active:scale-95 transition-all cursor-pointer disabled:opacity-50 shadow-lg shadow-[#CCFF00]/20 flex items-center justify-center gap-2"
               >
-                {addingDevice ? 'Registering...' : 'Register Device'}
+                {addingDevice ? 'Registering...' : 'Register Tracking Node'}
+                <span className="material-symbols-outlined text-black font-bold text-base">check_circle</span>
               </button>
             </form>
           </div>
@@ -409,49 +437,109 @@ export default function DeviceRecoveryModule() {
       {/* Remote Lock Screen Overlay Simulator */}
       {isAppLocked && (
         <div className="fixed inset-0 bg-[#0d0e0f]/95 backdrop-blur-2xl z-[9999] flex flex-col items-center justify-center p-6 text-center animate-fade-in">
-          <div className="max-w-md w-full glass-card p-8 rounded-[32px] border-t-4 border-red-500 shadow-[0_0_50px_rgba(239,68,68,0.2)] space-y-6">
-            <div className="w-20 h-20 bg-red-500/10 rounded-full flex items-center justify-center border border-red-500/20 shadow-inner mx-auto">
-              <span className="material-symbols-outlined text-5xl text-red-500 animate-pulse">lock</span>
-            </div>
-            
-            <div className="space-y-2">
-              <h2 className="text-2xl font-black text-white tracking-tight uppercase">DEVICE SECURED REMOTELY</h2>
-              <p className="text-xs text-[#c4c9ac] font-bold tracking-widest uppercase font-mono">ENOCH Mesh Defense Active</p>
-              <p className="text-sm text-[#c4c9ac] leading-relaxed pt-2">
-                This client terminal has been locked remotely via the ENOCH asset protection coordinator. All inputs and navigation routes are frozen.
-              </p>
-            </div>
+          {detectedOS === 'macOS' ? (
+            /* MacOS Lock Screen Style */
+            <div className="max-w-[320px] w-full flex flex-col items-center space-y-6">
+              {/* Profile Image Circle */}
+              <div className="w-24 h-24 rounded-full overflow-hidden border-2 border-white/20 shadow-2xl relative">
+                <img 
+                  className="w-full h-full object-cover" 
+                  alt="Avatar"
+                  src="https://lh3.googleusercontent.com/aida-public/AB6AXuDvWfWWSRhL6CzkOv3V6x_6OqM_oy9zstDuEEXihebiyCWmfxiFijeFwMuBNrz4KWWSeaqAqB0J7mkZa8TTd_L3dQhuC2ezgm6E0rT8VeApcZdZlhXu7Tg2BjrZlWGb6AB6he_8pAIMXZGUQAcaKMubjpPn2xZV0zKf_Di9XS5UU_aNLYjKoeqPsGO_bm7pf4RNLanDMUM7Zo5D93JWt5PDpHglQsnhFzsFjE0n7iJSUHFVpkVmXd48DPxOUsceuzZ9Xh-KgMusGOBz"
+                />
+              </div>
+              
+              <div className="space-y-1">
+                <h3 className="text-xl font-bold text-white tracking-tight">Danny</h3>
+                <p className="text-[10px] text-white/50 uppercase tracking-widest font-mono">Tied to macOS credentials</p>
+              </div>
 
-            <form onSubmit={handleUnlock} className="space-y-4 pt-4">
-              <div className="space-y-1.5 text-left">
-                <label className="text-xs font-bold tracking-widest text-[#c4c9ac] px-4 uppercase">UNLOCK AUTHORIZATION</label>
-                <div className="flex items-center bg-[#1b1c1d] border border-transparent rounded-full px-5 py-3.5 focus-within:border-red-500 focus-within:shadow-[0_0_15px_rgba(239,68,68,0.15)] transition-all duration-300">
-                  <span className="material-symbols-outlined text-[#c4c9ac] mr-3">lock_open</span>
+              <form onSubmit={handleUnlock} className="w-full space-y-4">
+                <div className="relative flex items-center bg-white/10 backdrop-blur-md border border-white/10 rounded-full px-4 py-2.5 focus-within:bg-white/15 focus-within:border-white/20 transition-all duration-300">
                   <input 
                     type="password"
                     required
                     value={unlockPassword}
                     onChange={(e) => setUnlockPassword(e.target.value)}
-                    className="bg-transparent border-none focus:outline-none focus:ring-0 text-[#e2e2e2] w-full p-0 text-base placeholder:text-[#c4c9ac]/30"
-                    placeholder="Enter account password (or 'unlock')" 
+                    className="bg-transparent border-none focus:outline-none focus:ring-0 text-[#e2e2e2] text-sm w-full p-0 pr-8 placeholder:text-white/35 text-center"
+                    placeholder="Enter Mac Password" 
                   />
+                  <button 
+                    type="submit"
+                    className="absolute right-2 top-1.5 w-7 h-7 bg-white/20 rounded-full flex items-center justify-center text-white hover:bg-white/40 active:scale-95 transition-all cursor-pointer"
+                  >
+                    <span className="material-symbols-outlined text-sm font-bold">arrow_forward</span>
+                  </button>
                 </div>
+                
                 {unlockError && (
-                  <p className="text-xs text-red-400 font-bold mt-1 px-4">{unlockError}</p>
+                  <p className="text-xs text-red-400 font-bold font-mono">{unlockError}</p>
                 )}
+                
+                <p className="text-[11px] text-white/40 pt-4 cursor-pointer hover:text-white/60 transition-colors">Use Touch ID or Enter Password</p>
+              </form>
+            </div>
+          ) : (
+            /* Windows 11 Lock Screen Style */
+            <div className="max-w-[400px] w-full flex flex-col items-center justify-between min-h-[500px] py-10">
+              {/* Clock at the Top */}
+              <div className="text-center space-y-1 select-none">
+                <h1 className="text-7xl font-light text-white leading-none">
+                  {new Date().toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit', hour12: false })}
+                </h1>
+                <p className="text-xs font-semibold text-white/80 tracking-wider">
+                  {new Date().toLocaleDateString('en-US', { weekday: 'long', month: 'long', day: 'numeric' })}
+                </p>
               </div>
 
-              <button 
-                type="submit"
-                className="w-full bg-red-500 hover:bg-red-600 text-white font-bold text-base py-4 rounded-full hover:shadow-[0_0_20px_rgba(239,68,68,0.3)] active:scale-98 transition-all duration-200 cursor-pointer flex items-center justify-center gap-2"
-              >
-                <span>Authorize & Unlock</span>
-                <span className="material-symbols-outlined font-bold text-lg">arrow_forward</span>
-              </button>
-            </form>
-          </div>
+              {/* Center User Profile and Pin Box */}
+              <div className="w-full flex flex-col items-center space-y-6">
+                <div className="w-24 h-24 rounded-full overflow-hidden border-2 border-white/25 shadow-xl">
+                  <img 
+                    className="w-full h-full object-cover" 
+                    alt="Danny's PC"
+                    src="https://lh3.googleusercontent.com/aida-public/AB6AXuDvWfWWSRhL6CzkOv3V6x_6OqM_oy9zstDuEEXihebiyCWmfxiFijeFwMuBNrz4KWWSeaqAqB0J7mkZa8TTd_L3dQhuC2ezgm6E0rT8VeApcZdZlhXu7Tg2BjrZlWGb6AB6he_8pAIMXZGUQAcaKMubjpPn2xZV0zKf_Di9XS5UU_aNLYjKoeqPsGO_bm7pf4RNLanDMUM7Zo5D93JWt5PDpHglQsnhFzsFjE0n7iJSUHFVpkVmXd48DPxOUsceuzZ9Xh-KgMusGOBz"
+                  />
+                </div>
+                
+                <div className="space-y-1">
+                  <h3 className="text-2xl font-semibold text-white">Danny's PC</h3>
+                  <p className="text-[10px] text-white/60 tracking-wider uppercase font-mono">Tied to Windows credentials</p>
+                </div>
+
+                <form onSubmit={handleUnlock} className="w-full max-w-[280px] space-y-3">
+                  <div className="relative flex items-center bg-black/45 border-b-2 border-white/50 focus-within:border-[#0078d4] focus-within:bg-black/60 transition-all duration-200">
+                    <input 
+                      type="password"
+                      required
+                      value={unlockPassword}
+                      onChange={(e) => setUnlockPassword(e.target.value)}
+                      className="bg-transparent border-none focus:outline-none focus:ring-0 text-white text-sm w-full py-2 px-3 pr-8 placeholder:text-white/40"
+                      placeholder="PIN or Desktop Password" 
+                    />
+                    <button 
+                      type="submit"
+                      className="absolute right-2 top-2 text-white/70 hover:text-white active:scale-95 transition-colors cursor-pointer"
+                    >
+                      <span className="material-symbols-outlined text-lg">arrow_forward</span>
+                    </button>
+                  </div>
+
+                  {unlockError && (
+                    <p className="text-xs text-red-400 font-bold">{unlockError}</p>
+                  )}
+                  
+                  <div className="pt-2">
+                    <p className="text-xs text-white/70 hover:text-white cursor-pointer select-none">I forgot my PIN</p>
+                    <p className="text-[10px] text-white/50 tracking-wider uppercase leading-none mt-4">Sign-in options</p>
+                  </div>
+                </form>
+              </div>
+              <div></div>
+            </div>
+          )}
         </div>
       )}
     </div>
   );
-}
+};

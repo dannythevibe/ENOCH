@@ -16,7 +16,8 @@ export async function GET(request: Request) {
       macAddress: d.MacAddress,
       batteryLevel: d.BatteryLevel,
       location: d.Location,
-      status: d.Status
+      status: d.Status,
+      desktopPasscode: d.DesktopPasscode || ''
     }));
 
     return NextResponse.json(mappedDevices);
@@ -31,7 +32,7 @@ export async function POST(request: Request) {
     const user = getUserFromRequest(request);
     if (!user) return NextResponse.json({ message: 'Unauthorized' }, { status: 401 });
 
-    const { name, macAddress, batteryLevel } = await request.json();
+    const { name, macAddress, batteryLevel, desktopPasscode } = await request.json();
     if (!name || !macAddress) {
       return NextResponse.json({ message: 'Name and macAddress are required' }, { status: 400 });
     }
@@ -41,8 +42,8 @@ export async function POST(request: Request) {
     const status = "Connected";
 
     const result = await dbRun(
-      'INSERT INTO Devices (Name, MacAddress, UserId, BatteryLevel, Location, Status) VALUES (?, ?, ?, ?, ?, ?)',
-      [name, macAddress, user.id, finalBattery, location, status]
+      'INSERT INTO Devices (Name, MacAddress, UserId, BatteryLevel, Location, Status, DesktopPasscode) VALUES (?, ?, ?, ?, ?, ?, ?)',
+      [name, macAddress, user.id, finalBattery, location, status, desktopPasscode || '']
     );
 
     return NextResponse.json({
@@ -51,7 +52,8 @@ export async function POST(request: Request) {
       macAddress,
       batteryLevel: finalBattery,
       location,
-      status
+      status,
+      desktopPasscode: desktopPasscode || ''
     }, { status: 201 });
 
   } catch (error) {
