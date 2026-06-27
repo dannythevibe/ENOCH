@@ -131,14 +131,7 @@ export default function CoordinateGrid({ userLocation, destination, mapTheme = '
                 <div className="w-4 h-4 bg-[#c3f400] rounded-full border-[3px] border-[#121314] shadow-[0_0_15px_#c3f400]"></div>
                 <div className="w-0.5 h-6 bg-gradient-to-t from-[#c3f400]/0 to-[#c3f400]"></div>
               </div>
-            ) : (
-              <div className="flex flex-col items-center group cursor-pointer">
-                <div className="opacity-0 group-hover:opacity-100 transition-opacity bg-[#121314] border border-white/10 text-[#c4c9ac] text-[9px] font-bold px-1.5 py-0.5 rounded mb-1 shadow-lg whitespace-nowrap">
-                  {l.name}
-                </div>
-                <div className="w-3 h-3 bg-white/70 rounded-full border-2 border-[#121314] shadow-[0_0_10px_rgba(255,255,255,0.2)] group-hover:bg-white group-hover:scale-125 transition-transform"></div>
-              </div>
-            )}
+            ) : null}
           </Marker>
         ))}
 
